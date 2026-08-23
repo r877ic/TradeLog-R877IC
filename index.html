@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeLog Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0a0a0b;
+    --surface: #141416;
+    --surface-2: #1c1c1e;
+    --border: #2a2822;
+    --gold: #d4af37;
+    --gold-bright: #f0c419;
+    --gold-dim: #8a7226;
+    --text: #f5f1e8;
+    --muted: #8f8a7d;
+    --green: #3ecf8e;
+    --red: #ef4444;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  html,body{ height:100%; overflow-x: hidden; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  #app{ min-height:100vh; }
+
+  /* ============ LOGIN VIEW ============ */
+  .login-wrap{
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    min-height:100vh;
+  }
+  @media (max-width: 860px){
+    .login-wrap{ grid-template-columns: 1fr; }
+    .login-visual{ display:none; }
+  }
+  .login-visual{
+    position:relative;
+    background: radial-gradient(120% 100% at 20% 0%, #17140d 0%, #0a0a0b 55%);
+    border-right: 1px solid var(--border);
+    overflow:hidden;
+    padding: 56px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+  .brand-mark{
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    z-index:2;
+  }
+  .brand-mark .dot{ width:7px; height:7px; border-radius:50%; background: var(--gold-bright); box-shadow: 0 0 12px var(--gold-bright); }
+  .visual-copy{ z-index:2; max-width: 460px; }
+  .visual-copy .eyebrow{
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .visual-copy h1{
+    font-family: var(--font-display);
+    font-size: 42px;
+    line-height: 1.12;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .visual-copy h1 em{ font-style: italic; color: var(--gold-bright); }
+  .visual-copy p{
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  canvas#candles{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity: 0.85;
+  }
+
+  .login-panel{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 32px;
+  }
+  .auth-card{
+    width:100%;
+    max-width: 380px;
+  }
+  .auth-card .mobile-brand{
+    display:none;
+    font-family: var(--font-display);
+    font-size: 20px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 860px){
+    .auth-card .mobile-brand{ display:flex; align-items:center; gap:8px; }
+  }
+  .auth-card h2{
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .auth-card .sub{
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .google-btn{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 20px;
+    border-radius: 10px;
+    cursor:pointer;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .google-btn:hover{ border-color: var(--gold-dim); background: #201f1a; }
+  .google-btn:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  .auth-foot{
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .auth-status{
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    min-height: 18px;
+  }
+  .auth-status.error{ color: var(--red); }
+
+  /* ============ DASHBOARD VIEW ============ */
+  .dash-wrap{ display:none; min-height:100vh; }
+  header.dash-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--border);
+  }
+  header.dash-nav .brand-mark{ font-size: 18px; }
+  .nav-right{ display:flex; align-items:center; gap:18px; }
+  .nav-user{ font-size: 13px; color: var(--muted); }
+  .logout-btn{
+    background:none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor:pointer;
+    font-family: var(--font-body);
+  }
+  .logout-btn:hover{ color: var(--text); border-color: var(--gold-dim); }
+
+  main.dash-main{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  .status-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+    margin-bottom: 28px;
+  }
+  .status-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 6px;
+  }
+  .status-eyebrow{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .badge{
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .badge.active{ background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+  .badge.pending{ background: rgba(212,175,55,0.1); color: var(--gold-bright); border: 1px solid rgba(212,175,55,0.3); }
+  .badge.inactive{ background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .status-card h3{
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 500;
+    margin: 10px 0 6px;
+  }
+  .status-card p.detail{ color: var(--muted); font-size: 14px; }
+
+  .pay-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+  }
+  .pay-card h4{
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .pay-card .sub{ color: var(--muted); font-size: 13.5px; margin-bottom: 24px; }
+  .card-detail{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .card-detail .label{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform:uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .card-detail .number{ font-family: var(--font-mono); font-size: 20px; color: var(--gold-bright); letter-spacing: 0.04em; margin-bottom: 4px; }
+  .card-detail .holder{ font-size: 13px; color: var(--muted); }
+  .card-detail .amount{ font-family: var(--font-mono); font-size: 13px; color: var(--text); margin-top: 10px; }
+
+  .upload-zone{
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    text-align:center;
+    cursor:pointer;
+    transition: border-color .15s ease;
+  }
+  .upload-zone:hover{ border-color: var(--gold-dim); }
+  .upload-zone.dragover{ border-color: var(--gold); background: rgba(212,175,55,0.04); }
+  .upload-zone p{ font-size: 13.5px; color: var(--muted); }
+  .upload-zone .filename{ color: var(--gold-bright); font-family: var(--font-mono); font-size: 12.5px; margin-top: 8px; }
+  #receiptInput{ display:none; }
+
+  .submit-btn{
+    width:100%;
+    margin-top: 18px;
+    background: var(--gold);
+    color: #14120a;
+    border:none;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    cursor:pointer;
+    transition: background .15s ease;
+  }
+  .submit-btn:hover{ background: var(--gold-bright); }
+  .submit-btn:disabled{ background: var(--border); color: var(--muted); cursor:not-allowed; }
+  .pay-status{
+    margin-top: 14px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    min-height: 16px;
+  }
+  .pay-status.error{ color: var(--red); }
+  .pay-status.ok{ color: var(--green); }
+
+  .loading-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    color: var(--muted); font-family: var(--font-mono); font-size: 13px;
+  }
+
+  /* ============ TRADE JOURNAL ============ */
+  .status-card{ transition: padding .4s ease, margin .4s ease; overflow:hidden; }
+  .status-card.minimized{
+    padding: 14px 24px;
+    margin-bottom: 20px;
+  }
+  .status-card.minimized h3{ display:none; }
+  .status-card.minimized p.detail{ display:none; }
+  .status-card.minimized .status-row{ margin-bottom:0; }
+
+  .journal-card, .trades-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .journal-card h4, .trades-card h4{
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .journal-card .sub{ color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .config-row{ margin-bottom: 14px; }
+  .config-row:last-child{ margin-bottom:0; }
+  .config-label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .token-box{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .token-box span{
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--gold-bright);
+    word-break: break-all;
+  }
+  .copy-btn{
+    flex-shrink:0;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor:pointer;
+  }
+  .copy-btn:hover{ color: var(--text); border-color: var(--gold-dim); }
+
+  .stats-bar{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .stat-box{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .stat-label{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-value{
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 500;
+  }
+  .stat-value.positive{ color: var(--green); }
+  .stat-value.negative{ color: var(--red); }
+
+  .empty-state{ padding: 24px 0; text-align:center; }
+  .empty-state p{ color: var(--muted); font-size: 13.5px; }
+
+  .trades-table{ width:100%; border-collapse: collapse; }
+  .trades-table th{
+    text-align:left;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .trades-table td{
+    padding: 12px 8px;
+    font-size: 13.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .trades-table td.mono{ font-family: var(--font-mono); }
+  .trades-table td.positive{ color: var(--green); }
+  .trades-table td.negative{ color: var(--red); }
+  .delete-trade-btn{
+    background:none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    cursor:pointer;
+  }
+  .delete-trade-btn:hover{ color: var(--red); border-color: var(--red); }
+
+  /* ============ HISOB (SHOT) TANLASH ============ */
+  .accounts-bar{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap:wrap;
+  }
+  .account-tab{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .account-tab.active{
+    background: rgba(212,175,55,0.1);
+    border-color: var(--gold-dim);
+    color: var(--gold-bright);
+  }
+  .account-tab-x{
+    opacity: 0.6;
+    font-size: 11px;
+  }
+  .account-tab-x:hover{ opacity: 1; color: var(--red); }
+  .account-tab-add{
+    background:none;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor:pointer;
+  }
+  .account-tab-add:hover{ border-color: var(--gold-dim); color: var(--gold-bright); }
+
+  .new-account-form{
+    display:none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .new-account-form.open{ display:flex; flex-wrap:wrap; align-items:flex-end; }
+  .new-account-form .form-field{ flex:1; min-width:160px; }
+
+  .account-actions{
+    display:flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .account-actions button{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor:pointer;
+  }
+  .account-actions button:hover{ color: var(--text); border-color: var(--gold-dim); }
+  .account-actions button.danger:hover{ color: var(--red); border-color: var(--red); }
+
+  /* ============ YON PANEL NAVIGATSIYASI ============ */
+  .journal-layout{
+    display:flex;
+    gap: 28px;
+    align-items:flex-start;
+  }
+  .journal-sidebar{
+    width: 210px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    gap: 4px;
+    position:sticky;
+    top: 24px;
+  }
+  .sidebar-link{
+    text-align:left;
+    background:none;
+    border:none;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 11px 14px;
+    border-radius: 10px;
+    cursor:pointer;
+  }
+  .sidebar-link:hover{ background: var(--surface); color: var(--text); }
+  .sidebar-link.active{
+    background: rgba(212,175,55,0.1);
+    color: var(--gold-bright);
+  }
+  .journal-content{ flex:1; min-width:0; }
+  .journal-panel{ display:none; }
+  .journal-panel.active{ display:block; }
+
+  .sidebar-toggle{
+    display:none;
+    align-items:center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 11px 16px;
+    border-radius: 10px;
+    cursor:pointer;
+    margin-bottom: 18px;
+  }
+  .sidebar-backdrop{
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.55);
+    z-index: 40;
+    opacity:0;
+    transition: opacity .3s ease;
+  }
+  .sidebar-backdrop.open{ display:block; opacity:1; }
+
+  @media (max-width: 780px){
+    .journal-layout{ display:block; }
+    .sidebar-toggle{ display:flex; }
+    .journal-sidebar{
+      position:fixed;
+      top:0;
+      left:0;
+      height:100vh;
+      width: 260px;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform .32s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow-y:auto;
+    }
+    .journal-sidebar.open{ transform: translateX(0); }
+    .sidebar-link{ padding: 13px 14px; font-size: 14.5px; }
+  }
+
+  /* ============ PROFIL BO'LIMI ============ */
+  .profile-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .profile-card h4{
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+  .avatar-row{
+    display:flex;
+    align-items:center;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .avatar-preview{
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    object-fit: cover;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family: var(--font-display);
+    font-size: 24px;
+    color: var(--gold-bright);
+    overflow:hidden;
+  }
+  .avatar-preview img{ width:100%; height:100%; object-fit:cover; }
+  .avatar-upload-btn{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    cursor:pointer;
+  }
+  .avatar-upload-btn:hover{ border-color: var(--gold-dim); }
+  .profile-form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 500px){ .profile-form-grid{ grid-template-columns: 1fr; } }
+
+  /* ============ PROP FIRM CALCULATOR ============ */
+  .calc-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .calc-card h4{
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .calc-grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 20px 0;
+  }
+  @media (max-width: 480px){ .calc-grid{ grid-template-columns: 1fr; } }
+
+  .calc-results{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 640px){ .calc-results{ grid-template-columns: 1fr 1fr; } }
+  .calc-result-box{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .calc-result-label{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .calc-result-value{
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .calc-result-value.warn{ color: var(--red); }
+  .calc-result-value.good{ color: var(--green); }
+
+  /* ============ KALENDAR ============ */
+  .calendar-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+  }
+  .calendar-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 20px;
+  }
+  .calendar-nav h4{
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+  }
+  .calendar-nav-btns{ display:flex; gap: 8px; }
+  .calendar-nav-btns button{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    cursor:pointer;
+    font-size: 15px;
+  }
+  .calendar-nav-btns button:hover{ border-color: var(--gold-dim); }
+
+  .calendar-grid{
+    display:grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .calendar-weekday{
+    min-width: 0;
+    text-align:center;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding-bottom: 6px;
+  }
+  .calendar-day{
+    min-width: 0;
+    aspect-ratio: 1;
+    min-height: 52px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    overflow: hidden;
+    transition: transform .12s ease;
+  }
+  .calendar-day:hover{ transform: translateY(-2px); border-color: var(--gold-dim); }
+  .calendar-day.empty{ visibility:hidden; cursor:default; }
+  .calendar-day.positive{ background: rgba(62,207,142,0.14); border-color: rgba(62,207,142,0.3); color: var(--text); font-weight:600; }
+  .calendar-day.negative{ background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.3); color: var(--text); font-weight:600; }
+  .calendar-day .day-pnl{ font-size: 10.5px; margin-top: 4px; white-space: nowrap; }
+
+  @media (max-width: 480px){
+    .calendar-card{ padding: 16px 10px; }
+    .calendar-grid{ gap: 4px; }
+    .calendar-day{ min-height: 36px; padding: 4px 5px; font-size: 10px; border-radius: 6px; }
+    .calendar-day .day-pnl{ font-size: 8px; margin-top: 2px; }
+    .calendar-weekday{ font-size: 8.5px; padding-bottom: 4px; }
+    .calendar-nav h4{ font-size: 16px; }
+  }
+
+  .calendar-footer{
+    display:flex;
+    justify-content:space-between;
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+
+  /* Kun modal oynasi */
+  .day-modal-backdrop{
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.6);
+    z-index: 60;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+  }
+  .day-modal-backdrop.open{ display:flex; }
+  .day-modal{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y:auto;
+  }
+  .day-modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 18px;
+  }
+  .day-modal-head h4{
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+  }
+  .day-modal-close{
+    background:none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor:pointer;
+  }
+  .day-modal-trades{ margin-bottom: 20px; }
+  .day-modal-trade-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .day-modal-empty{ color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .add-trade-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+  }
+  .add-trade-card h4{
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 18px;
+  }
+  .trade-form-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 640px){ .trade-form-grid{ grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px){ .trade-form-grid{ grid-template-columns: 1fr; } }
+  .form-field{ min-width: 0; }
+  .form-field label{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .form-field input, .form-field select{
+    width:100%;
+    box-sizing: border-box;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+  .form-field input:focus, .form-field select:focus{ outline: none; border-color: var(--gold-dim); }
+  .add-trade-btn{
+    background: var(--gold);
+    color: #14120a;
+    border:none;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 12px 22px;
+    border-radius: 8px;
+    cursor:pointer;
+  }
+  .add-trade-btn:hover{ background: var(--gold-bright); }
+  .add-trade-status{
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    min-height: 16px;
+  }
+  .add-trade-status.ok{ color: var(--green); }
+  .add-trade-status.error{ color: var(--red); }
+
+  .symbol-select-wrap{ position:relative; }
+  .symbol-dropdown{
+    display:none;
+    position:absolute;
+    top: calc(100% + 4px);
+    left:0;
+    right:0;
+    max-height: 260px;
+    overflow-y:auto;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    z-index: 20;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .symbol-dropdown.open{ display:block; }
+  .symbol-option{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 9px 12px;
+    cursor:pointer;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .symbol-option:hover{ background: rgba(212,175,55,0.08); }
+  .symbol-star{
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size: 15px;
+    color: var(--border);
+    padding: 2px 6px;
+    line-height:1;
+  }
+  .symbol-star.active{ color: var(--gold-bright); }
+  .symbol-divider{
+    padding: 6px 12px 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  .symbol-divider:first-child{ border-top:none; }
+
+  /* ============ HISOBOT SHABLONI (yashirin, faqat rasm/PDF uchun) ============ */
+  #reportRoot{
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 700px;
+  }
+  .report-page{
+    width: 700px;
+    min-height: 990px;
+    background: #0a0a0b;
+    padding: 48px;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+  }
+  .report-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #d4af37;
+  }
+  .report-brand{
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    color: #f5f1e8;
+    font-weight: 600;
+  }
+  .report-date{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    color: #8f8a7d;
+  }
+  .report-stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .report-stat{
+    background: #141416;
+    border: 1px solid #2a2822;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .report-stat-label{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: #8f8a7d;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .report-stat-value{
+    font-family: 'Fraunces', serif;
+    font-size: 30px;
+    color: #f5f1e8;
+    font-weight: 600;
+  }
+  .report-stat-value.positive{ color: #3ecf8e; }
+  .report-stat-value.negative{ color: #ef4444; }
+
+  .report-table{
+    width:100%;
+    border-collapse: collapse;
+  }
+  .report-table th{
+    text-align:left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: #8f8a7d;
+    text-transform: uppercase;
+    padding: 14px 10px;
+    border-bottom: 2px solid #2a2822;
+  }
+  .report-table td{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 17px;
+    color: #f5f1e8;
+    padding: 16px 10px;
+    border-bottom: 1px solid #2a2822;
+  }
+  .report-table td.positive{ color: #3ecf8e; }
+  .report-table td.negative{ color: #ef4444; }
+  .report-footer{
+    margin-top: 24px;
+    text-align:center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: #8f8a7d;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading-screen" id="loadingScreen">tekshirilmoqda…</div>
+
+  <!-- LOGIN VIEW -->
+  <div class="login-wrap" id="loginView" style="display:none;">
+    <div class="login-visual">
+      <canvas id="candles"></canvas>
+      <div class="brand-mark"><span class="dot"></span>TradeLog Pro</div>
+      <div class="visual-copy">
+        <div class="eyebrow">Trade jurnal · MT4/MT5</div>
+        <h1>Har bir savdo <em>o'zi</em> yozilsin.</h1>
+        <p>EA orqali avtomatik trade jurnal — statistika, P&L va tahlil bir joyda, qo'lda yozishga hojat yo'q.</p>
+      </div>
+    </div>
+    <div class="login-panel">
+      <div class="auth-card">
+        <div class="mobile-brand"><span class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 12px var(--gold-bright);"></span>TradeLog Pro</div>
+        <h2>Xush kelibsiz</h2>
+        <p class="sub">Davom etish uchun Google hisobingiz orqali kiring.</p>
+        <button class="google-btn" id="googleBtn">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.09-1.81 2.73v2.27h2.92c1.71-1.57 2.69-3.88 2.69-6.64z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.27c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.96C.35 6.17 0 7.55 0 9s.35 2.83.96 4.03l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+          Google orqali kirish
+        </button>
+        <div class="auth-status" id="authStatus"></div>
+        <p class="auth-foot">Kirish orqali siz TradeLog Pro xizmat shartlariga rozilik bildirasiz.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div class="dash-wrap" id="dashView">
+    <header class="dash-nav">
+      <div class="brand-mark"><span class="dot"></span>TradeLog Pro</div>
+      <div class="nav-right">
+        <span class="nav-user" id="navUserEmail"></span>
+        <button class="logout-btn" id="logoutBtn">Chiqish</button>
+      </div>
+    </header>
+    <main class="dash-main">
+
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-eyebrow">Obuna holati</span>
+          <span class="badge" id="statusBadge">—</span>
+        </div>
+        <h3 id="statusTitle">Yuklanmoqda…</h3>
+        <p class="detail" id="statusDetail"></p>
+      </div>
+
+      <div class="pay-card" id="payCard" style="display:none;">
+        <h4>To'lovni tasdiqlash</h4>
+        <p class="sub">Quyidagi kartaga o'tkazma qiling va chek skrinshotini yuklang. Tasdiqlangandan so'ng obunangiz faollashadi.</p>
+
+        <div class="card-detail">
+          <div class="label">Karta raqami</div>
+          <div class="number">5614 6829 0412 4619</div>
+          <div class="holder">URAZBOYEV SHOHIMARDON</div>
+          <div class="amount">Summasi: 30 000 so'm / oy</div>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+          <p>Chek rasmini shu yerga tashlang yoki bosib tanlang</p>
+          <div class="filename" id="fileName"></div>
+        </div>
+        <input type="file" id="receiptInput" accept="image/*">
+
+        <button class="submit-btn" id="submitReceipt" disabled>Chekni yuborish</button>
+        <div class="pay-status" id="payStatus"></div>
+      </div>
+
+      <!-- TRADE JOURNAL -->
+      <div id="journalSection" style="display:none;">
+        <button class="sidebar-toggle" id="sidebarToggle">☰ Bo'limlar</button>
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+        <div class="journal-layout">
+
+          <nav class="journal-sidebar" id="journalSidebar">
+            <button class="sidebar-link active" data-target="secOverview">📊 Bosh sahifa</button>
+            <button class="sidebar-link" data-target="secAddTrade">➕ Trade qo'shish</button>
+            <button class="sidebar-link" data-target="secHistory">📜 Trade tarixi</button>
+            <button class="sidebar-link" data-target="secTelegram">📨 Telegram hisobot</button>
+            <button class="sidebar-link" data-target="secEA">⚙️ EA sozlamalari</button>
+            <button class="sidebar-link" data-target="secProfile">👤 Profil</button>
+            <button class="sidebar-link" data-target="secPropCalc">🧮 Prop Calculator</button>
+          </nav>
+
+          <div class="journal-content">
+
+            <div id="secOverview" class="journal-panel active">
+              <div class="accounts-bar" id="accountsBar"></div>
+
+              <div class="new-account-form" id="newAccountForm">
+                <div class="form-field">
+                  <label>Hisob nomi</label>
+                  <input type="text" id="newAccName" placeholder="masalan: Prop Firm #1">
+                </div>
+                <div class="form-field">
+                  <label>Boshlang'ich balans (USD)</label>
+                  <input type="number" step="0.01" id="newAccBalance" placeholder="1000">
+                </div>
+                <button class="add-trade-btn" id="createAccountBtn">Yaratish</button>
+              </div>
+
+              <div class="stats-bar">
+                <div class="stat-box">
+                  <div class="stat-label">Balans</div>
+                  <div class="stat-value" id="statBalance">—</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Jami trade</div>
+                  <div class="stat-value" id="statTotal">0</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Yutuq foizi</div>
+                  <div class="stat-value" id="statWinRate">—</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Jami P&L</div>
+                  <div class="stat-value" id="statPnl">—</div>
+                </div>
+              </div>
+
+              <div class="account-actions">
+                <button id="editBalanceBtn">💰 Boshlang'ich balansni sozlash</button>
+                <button id="clearAccountBtn" class="danger">🗑️ Hisobni tozalash (barcha trade'larni o'chirish)</button>
+              </div>
+
+              <div class="calendar-card">
+                <div class="calendar-nav">
+                  <h4 id="calendarMonthLabel">—</h4>
+                  <div class="calendar-nav-btns">
+                    <button id="calendarPrevBtn">‹</button>
+                    <button id="calendarNextBtn">›</button>
+                  </div>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="calendar-footer">
+                  <span id="calendarMonthTrades">0 trade</span>
+                  <span id="calendarMonthPnl">$0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="secAddTrade" class="journal-panel">
+              <div class="add-trade-card">
+                <h4>Trade qo'shish</h4>
+                <div class="trade-form-grid">
+                  <div class="form-field">
+                    <label>Symbol</label>
+                    <div class="symbol-select-wrap">
+                      <input type="text" id="tfSymbol" placeholder="EURUSD" autocomplete="off">
+                      <div class="symbol-dropdown" id="symbolDropdown"></div>
+                    </div>
+                  </div>
+                  <div class="form-field">
+                    <label>Turi</label>
+                    <select id="tfType">
+                      <option value="buy">Buy</option>
+                      <option value="sell">Sell</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>Lot</label>
+                    <input type="number" step="0.01" id="tfLot" placeholder="0.10">
+                  </div>
+                  <div class="form-field">
+                    <label>Ochilish narxi</label>
+                    <input type="number" step="0.00001" id="tfOpenPrice" placeholder="1.08500">
+                  </div>
+                  <div class="form-field">
+                    <label>Yopilish narxi</label>
+                    <input type="number" step="0.00001" id="tfClosePrice" placeholder="1.08700">
+                  </div>
+                  <div class="form-field">
+                    <label>P&L (USD)</label>
+                    <input type="number" step="0.01" id="tfProfit" placeholder="25.00">
+                  </div>
+                  <div class="form-field">
+                    <label>Ochilgan sana</label>
+                    <input type="datetime-local" id="tfOpenTime">
+                  </div>
+                  <div class="form-field">
+                    <label>Yopilgan sana</label>
+                    <input type="datetime-local" id="tfCloseTime">
+                  </div>
+                </div>
+                <button class="add-trade-btn" id="addTradeBtn">Qo'shish</button>
+                <div class="add-trade-status" id="addTradeStatus"></div>
+              </div>
+            </div>
+
+            <div id="secHistory" class="journal-panel">
+              <div class="trades-card">
+                <h4>So'nggi trade'lar</h4>
+                <div id="tradesEmpty" class="empty-state">
+                  <p>Hali trade yo'q. EA sozlangach, yopilgan savdolar shu yerda avtomatik chiqadi.</p>
+                </div>
+                <table class="trades-table" id="tradesTable" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th>Symbol</th>
+                      <th>Turi</th>
+                      <th>Lot</th>
+                      <th>P&L</th>
+                      <th>Yopilgan vaqt</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tradesBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="secTelegram" class="journal-panel">
+              <div class="journal-card">
+                <h4>Telegram hisobot</h4>
+                <p class="sub">Shaxsiy Telegram'ingizni ulang — trade hisobotingizni PDF yoki rasm ko'rinishida to'g'ridan-to'g'ri shu yerga olasiz.</p>
+
+                <div class="config-row">
+                  <div class="config-label">Telegram Username</div>
+                  <div class="token-box">
+                    <input type="text" id="tgChatIdInput" placeholder="@username" style="background:transparent;border:none;color:var(--gold-bright);font-family:var(--font-mono);font-size:13px;width:100%;outline:none;">
+                    <button class="copy-btn" id="saveTgChatId">Saqlash</button>
+                  </div>
+                </div>
+                <p class="sub" style="margin-top:10px;margin-bottom:0;font-size:12px;">
+                  Avval Telegram'da <b>@tradelogpro_admin_bot</b>ni oching va <b>/start</b> bosing. Keyin shu yerga o'z username'ingizni (masalan @rich_boy) kiritib saqlang.
+                </p>
+                <div class="add-trade-status" id="tgSaveStatus"></div>
+
+                <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap;">
+                  <button class="add-trade-btn" id="sendPdfBtn">📄 PDF hisobot yuborish</button>
+                  <button class="add-trade-btn" id="sendImageBtn" style="background:var(--surface-2); color:var(--text); border:1px solid var(--border);">🖼️ Rasm sifatida yuborish</button>
+                </div>
+                <div class="add-trade-status" id="reportStatus"></div>
+              </div>
+            </div>
+
+            <div id="secEA" class="journal-panel">
+              <div class="journal-card">
+                <h4>EA sozlamalari</h4>
+                <p class="sub">MetaTrader'dagi EA shu ma'lumotlarni ishlatadi — trade'lar avtomatik shu yerga tushadi.</p>
+
+                <div class="config-row">
+                  <div class="config-label">Webhook URL</div>
+                  <div class="token-box">
+                    <span id="webhookUrlText"></span>
+                    <button class="copy-btn" data-copy-target="webhookUrlText">Nusxalash</button>
+                  </div>
+                </div>
+                <div class="config-row">
+                  <div class="config-label">Token</div>
+                  <div class="token-box">
+                    <span id="webhookTokenText"></span>
+                    <button class="copy-btn" data-copy-target="webhookTokenText">Nusxalash</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="secProfile" class="journal-panel">
+              <div class="profile-card">
+                <h4>Profil ma'lumotlari</h4>
+
+                <div class="avatar-row">
+                  <div class="avatar-preview" id="avatarPreview">?</div>
+                  <div>
+                    <button class="avatar-upload-btn" id="avatarUploadBtn">Rasm yuklash</button>
+                    <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+                  </div>
+                </div>
+
+                <div class="profile-form-grid">
+                  <div class="form-field">
+                    <label>Ism Familiya</label>
+                    <input type="text" id="pfFullName" placeholder="Shohimardon Urazboyev">
+                  </div>
+                  <div class="form-field">
+                    <label>Nik (username)</label>
+                    <input type="text" id="pfNickname" placeholder="rich_boy">
+                  </div>
+                </div>
+                <button class="add-trade-btn" id="saveProfileBtn">Saqlash</button>
+                <div class="add-trade-status" id="profileSaveStatus"></div>
+              </div>
+
+              <div class="profile-card">
+                <h4>Email o'zgartirish</h4>
+                <p class="sub">Hozirgi email: <span id="currentEmailText" style="color:var(--gold-bright);"></span></p>
+                <div class="form-field" style="max-width:340px;">
+                  <label>Yangi email</label>
+                  <input type="email" id="pfNewEmail" placeholder="yangi@email.com">
+                </div>
+                <button class="add-trade-btn" id="changeEmailBtn" style="margin-top:14px;">Email o'zgartirish</button>
+                <div class="add-trade-status" id="emailChangeStatus"></div>
+                <p class="sub" style="margin-top:10px;font-size:12px;">O'zgartirish uchun yangi email manzilingizga tasdiqlash havolasi yuboriladi.</p>
+              </div>
+            </div>
+
+            <div id="secPropCalc" class="journal-panel">
+              <div class="calc-card">
+                <h4>Prop Firm Calculator</h4>
+                <p class="sub">Hisob hajmi va qoidalarni kiriting — target, drawdown limitlari va qolgan masofa avtomatik hisoblanadi.</p>
+
+                <div class="calc-grid">
+                  <div class="form-field">
+                    <label>Hisob hajmi (USD)</label>
+                    <input type="number" step="0.01" id="calcAccountSize" value="25000">
+                  </div>
+                  <div class="form-field">
+                    <label>Profit Target (%)</label>
+                    <input type="number" step="0.1" id="calcTarget" value="10">
+                  </div>
+                  <div class="form-field">
+                    <label>Daily Loss Limit (%)</label>
+                    <input type="number" step="0.1" id="calcDailyLoss" value="3">
+                  </div>
+                  <div class="form-field">
+                    <label>Max Loss Limit (%)</label>
+                    <input type="number" step="0.1" id="calcMaxLoss" value="6">
+                  </div>
+                  <div class="form-field">
+                    <label>Hozirgi drawdown (USD)</label>
+                    <input type="number" step="0.01" id="calcCurrentDD" value="0">
+                  </div>
+                  <div class="form-field">
+                    <label>Hozirgi foyda (USD)</label>
+                    <input type="number" step="0.01" id="calcCurrentProfit" value="0">
+                  </div>
+                </div>
+
+                <div class="calc-results">
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Target ($)</div>
+                    <div class="calc-result-value" id="calcResTarget">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Daily loss limit ($)</div>
+                    <div class="calc-result-value" id="calcResDailyLoss">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Max loss limit ($)</div>
+                    <div class="calc-result-value" id="calcResMaxLoss">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Qolgan drawdown ($)</div>
+                    <div class="calc-result-value" id="calcResRemainingDD">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Qolgan target ($)</div>
+                    <div class="calc-result-value" id="calcResRemainingTarget">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Holat</div>
+                    <div class="calc-result-value" id="calcResStatus">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Hisobot shabloni (yashirin, faqat rasm/PDF chiqarish uchun ishlatiladi) -->
+  <div id="reportRoot"></div>
+
+  <!-- Kun tafsilotlari modal oynasi -->
+  <div class="day-modal-backdrop" id="dayModalBackdrop">
+    <div class="day-modal">
+      <div class="day-modal-head">
+        <h4 id="dayModalTitle">—</h4>
+        <button class="day-modal-close" id="dayModalClose">✕</button>
+      </div>
+
+      <div class="day-modal-trades" id="dayModalTradesList"></div>
+
+      <div class="add-trade-card" style="padding:0; border:none; margin:0;">
+        <h4 style="font-size:15px;">Shu kunga trade qo'shish</h4>
+        <div class="trade-form-grid">
+          <div class="form-field">
+            <label>Symbol</label>
+            <div class="symbol-select-wrap">
+              <input type="text" id="dmSymbol" placeholder="EURUSD" autocomplete="off">
+              <div class="symbol-dropdown" id="dmSymbolDropdown"></div>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Turi</label>
+            <select id="dmType">
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Lot</label>
+            <input type="number" step="0.01" id="dmLot" placeholder="0.10">
+          </div>
+          <div class="form-field">
+            <label>P&L (USD)</label>
+            <input type="number" step="0.01" id="dmProfit" placeholder="25.00">
+          </div>
+        </div>
+        <button class="add-trade-btn" id="dmAddTradeBtn">Qo'shish</button>
+        <div class="add-trade-status" id="dmAddTradeStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ SUPABASE CONFIG ============
+// TODO: Publishable key allaqachon qo'yilgan. Loyiha URL to'g'ri.
+const SUPABASE_URL = 'https://bexotblptuwuraitlxtk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Gpr2MJbts_yKQY14ZXXgTQ_p_w8NZsp';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loadingScreen = document.getElementById('loadingScreen');
+const loginView = document.getElementById('loginView');
+const dashView = document.getElementById('dashView');
+const authStatus = document.getElementById('authStatus');
+
+// ============ CANDLESTICK BACKGROUND ANIMATION ============
+function initCandles(){
+  const canvas = document.getElementById('candles');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h;
+  function resize(){
+    w = canvas.width = canvas.offsetWidth * devicePixelRatio;
+    h = canvas.height = canvas.offsetHeight * devicePixelRatio;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const cols = 22;
+  let candles = [];
+  function seed(){
+    candles = [];
+    let price = 50;
+    for(let i=0;i<cols;i++){
+      const open = price;
+      const close = price + (Math.random()-0.48)*14;
+      const high = Math.max(open,close) + Math.random()*6;
+      const low = Math.min(open,close) - Math.random()*6;
+      candles.push({open, close, high, low, phase: Math.random()*Math.PI*2});
+      price = close;
+    }
+  }
+  seed();
+
+  let t = 0;
+  function draw(){
+    t += 0.008;
+    ctx.clearRect(0,0,w,h);
+    const gap = w / cols;
+    const midY = h*0.55;
+    const scale = h * 0.006;
+
+    candles.forEach((c, i) => {
+      const bob = Math.sin(t + c.phase) * 4;
+      const x = i*gap + gap*0.5;
+      const openY = midY - (c.open-50)*scale + bob;
+      const closeY = midY - (c.close-50)*scale + bob;
+      const highY = midY - (c.high-50)*scale + bob;
+      const lowY = midY - (c.low-50)*scale + bob;
+      const bullish = c.close >= c.open;
+      const color = bullish ? 'rgba(212,175,55,0.55)' : 'rgba(143,138,125,0.35)';
+
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 1.2 * devicePixelRatio;
+
+      ctx.beginPath();
+      ctx.moveTo(x, highY);
+      ctx.lineTo(x, lowY);
+      ctx.stroke();
+
+      const bodyTop = Math.min(openY, closeY);
+      const bodyH = Math.max(Math.abs(closeY-openY), 2*devicePixelRatio);
+      ctx.fillRect(x - gap*0.16, bodyTop, gap*0.32, bodyH);
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  setInterval(() => {
+    candles.shift();
+    const last = candles[candles.length-1] || {close:50};
+    const open = last.close;
+    const close = open + (Math.random()-0.48)*14;
+    const high = Math.max(open,close) + Math.random()*6;
+    const low = Math.min(open,close) - Math.random()*6;
+    candles.push({open, close, high, low, phase: Math.random()*Math.PI*2});
+  }, 2200);
+}
+
+// ============ AUTH ============
+document.getElementById('googleBtn').addEventListener('click', async () => {
+  authStatus.textContent = 'Google sahifasiga yo\'naltirilmoqda…';
+  authStatus.className = 'auth-status';
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname }
+  });
+  if(error){
+    authStatus.textContent = 'Xatolik: ' + error.message;
+    authStatus.className = 'auth-status error';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.reload();
+});
+
+async function showLogin(){
+  loadingScreen.style.display = 'none';
+  loginView.style.display = 'grid';
+  dashView.style.display = 'none';
+  initCandles();
+}
+
+async function showDashboard(user){
+  loadingScreen.style.display = 'none';
+  loginView.style.display = 'none';
+  dashView.style.display = 'block';
+  document.getElementById('navUserEmail').textContent = user.email;
+  await loadSubscriptionStatus(user);
+}
+
+// ============ SUBSCRIPTION STATUS ============
+async function loadSubscriptionStatus(user){
+  const badge = document.getElementById('statusBadge');
+  const title = document.getElementById('statusTitle');
+  const detail = document.getElementById('statusDetail');
+  const payCard = document.getElementById('payCard');
+
+  const { data: sub } = await sb
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: pendingReceipt } = await sb
+    .from('payment_receipts')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const statusCard = document.querySelector('.status-card');
+  const journalSection = document.getElementById('journalSection');
+
+  if(sub && sub.status === 'active' && new Date(sub.expires_at) > new Date()){
+    badge.textContent = 'Faol';
+    badge.className = 'badge active';
+    title.textContent = 'Obunangiz faol';
+    detail.textContent = 'Amal qilish muddati: ' + new Date(sub.expires_at).toLocaleDateString('uz-UZ');
+    payCard.style.display = 'none';
+    statusCard.classList.remove('minimized');
+    journalSection.style.display = 'none';
+
+    // Qisqa vaqt "Obunangiz faol" ko'rsatiladi, keyin asosiy vazifaga — trade jurnalga o'tadi
+    setTimeout(() => {
+      statusCard.classList.add('minimized');
+      journalSection.style.display = 'block';
+      loadJournal(user);
+    }, 1500);
+
+  } else if(pendingReceipt){
+    badge.textContent = 'Kutilmoqda';
+    badge.className = 'badge pending';
+    title.textContent = 'Chekingiz tekshirilmoqda';
+    detail.textContent = 'Tasdiqlanishi bilan obunangiz avtomatik faollashadi.';
+    payCard.style.display = 'none';
+    statusCard.classList.remove('minimized');
+    journalSection.style.display = 'none';
+  } else {
+    badge.textContent = 'Faol emas';
+    badge.className = 'badge inactive';
+    title.textContent = 'Obuna faol emas';
+    detail.textContent = 'Xizmatdan foydalanish uchun to\'lovni amalga oshiring.';
+    payCard.style.display = 'block';
+    statusCard.classList.remove('minimized');
+    journalSection.style.display = 'none';
+  }
+}
+
+// ============ TRADE JOURNAL ============
+const INGEST_URL = 'https://bexotblptuwuraitlxtk.supabase.co/functions/v1/super-endpoint';
+
+let CURRENT_USER = null;
+let CURRENT_TRADES = [];
+let CURRENT_ACCOUNTS = [];
+let CURRENT_ACCOUNT_ID = null;
+
+async function loadJournal(user){
+  CURRENT_USER = user;
+  // Foydalanuvchining to'liq profil ma'lumotini olish
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('webhook_token, telegram_username, full_name, nickname, avatar_url')
+    .eq('id', user.id)
+    .single();
+
+  document.getElementById('webhookUrlText').textContent = INGEST_URL;
+  document.getElementById('webhookTokenText').textContent = profile?.webhook_token || '—';
+  document.getElementById('tgChatIdInput').value = profile?.telegram_username || '';
+
+  document.getElementById('pfFullName').value = profile?.full_name || '';
+  document.getElementById('pfNickname').value = profile?.nickname || '';
+  document.getElementById('currentEmailText').textContent = user.email;
+
+  const avatarPreview = document.getElementById('avatarPreview');
+  if(profile?.avatar_url){
+    avatarPreview.innerHTML = `<img src="${profile.avatar_url}" alt="avatar">`;
+  } else {
+    avatarPreview.textContent = (profile?.full_name || user.email || '?').charAt(0).toUpperCase();
+  }
+
+  await loadAccounts(user);
+}
+
+// ============ HISOBLAR (SHOT'LAR) ============
+async function loadAccounts(user){
+  let { data: accounts } = await sb
+    .from('trading_accounts')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true });
+
+  if(!accounts || accounts.length === 0){
+    const { data: newAcc } = await sb
+      .from('trading_accounts')
+      .insert({ user_id: user.id, name: 'Asosiy hisob', starting_balance: 0 })
+      .select('*')
+      .single();
+    accounts = newAcc ? [newAcc] : [];
+  }
+
+  CURRENT_ACCOUNTS = accounts;
+
+  const savedId = localStorage.getItem('tradelogpro_current_account_' + user.id);
+  if(savedId && accounts.find(a => a.id === savedId)){
+    CURRENT_ACCOUNT_ID = savedId;
+  } else {
+    CURRENT_ACCOUNT_ID = accounts[0].id;
+  }
+
+  renderAccountTabs();
+  await loadTradesForAccount();
+}
+
+// ============ YON PANEL NAVIGATSIYASI ============
+const journalSidebar = document.getElementById('journalSidebar');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+function closeSidebarDrawer(){
+  journalSidebar.classList.remove('open');
+  sidebarBackdrop.classList.remove('open');
+}
+function openSidebarDrawer(){
+  journalSidebar.classList.add('open');
+  sidebarBackdrop.classList.add('open');
+}
+
+document.getElementById('sidebarToggle').addEventListener('click', openSidebarDrawer);
+sidebarBackdrop.addEventListener('click', closeSidebarDrawer);
+
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.journal-panel').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    document.getElementById(link.getAttribute('data-target')).classList.add('active');
+    closeSidebarDrawer();
+  });
+});
+
+function renderAccountTabs(){
+  const bar = document.getElementById('accountsBar');
+  bar.innerHTML = '';
+
+  CURRENT_ACCOUNTS.forEach(acc => {
+    const tab = document.createElement('button');
+    tab.className = 'account-tab' + (acc.id === CURRENT_ACCOUNT_ID ? ' active' : '');
+    tab.innerHTML = `<span>${acc.name}</span>` +
+      (CURRENT_ACCOUNTS.length > 1 ? `<span class="account-tab-x" data-del-account="${acc.id}" title="Hisobni o'chirish">✕</span>` : '');
+    tab.addEventListener('click', (e) => {
+      if(e.target.closest('.account-tab-x')) return;
+      CURRENT_ACCOUNT_ID = acc.id;
+      localStorage.setItem('tradelogpro_current_account_' + CURRENT_USER.id, acc.id);
+      renderAccountTabs();
+      loadTradesForAccount();
+    });
+    bar.appendChild(tab);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'account-tab-add';
+  addBtn.textContent = '+ Yangi hisob';
+  addBtn.addEventListener('click', () => {
+    document.getElementById('newAccountForm').classList.toggle('open');
+  });
+  bar.appendChild(addBtn);
+}
+
+document.getElementById('accountsBar').addEventListener('click', async (e) => {
+  const delBtn = e.target.closest('.account-tab-x');
+  if(!delBtn) return;
+  const accId = delBtn.getAttribute('data-del-account');
+  const acc = CURRENT_ACCOUNTS.find(a => a.id === accId);
+  if(!confirm(`"${acc.name}" hisobini butunlay o'chirishni tasdiqlaysizmi? Bu hisobdagi barcha trade'lar ham o'chib ketadi.`)) return;
+
+  const { error } = await sb.from('trading_accounts').delete().eq('id', accId);
+  if(error){ alert('Xatolik: ' + error.message); return; }
+
+  CURRENT_ACCOUNTS = CURRENT_ACCOUNTS.filter(a => a.id !== accId);
+  if(CURRENT_ACCOUNT_ID === accId){
+    CURRENT_ACCOUNT_ID = CURRENT_ACCOUNTS[0].id;
+    localStorage.setItem('tradelogpro_current_account_' + CURRENT_USER.id, CURRENT_ACCOUNT_ID);
+  }
+  renderAccountTabs();
+  loadTradesForAccount();
+});
+
+document.getElementById('createAccountBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newAccName').value.trim() || 'Yangi hisob';
+  const balance = Number(document.getElementById('newAccBalance').value) || 0;
+
+  const { data: newAcc, error } = await sb
+    .from('trading_accounts')
+    .insert({ user_id: CURRENT_USER.id, name, starting_balance: balance })
+    .select('*')
+    .single();
+
+  if(error){ alert('Xatolik: ' + error.message); return; }
+
+  CURRENT_ACCOUNTS.push(newAcc);
+  CURRENT_ACCOUNT_ID = newAcc.id;
+  localStorage.setItem('tradelogpro_current_account_' + CURRENT_USER.id, newAcc.id);
+
+  document.getElementById('newAccName').value = '';
+  document.getElementById('newAccBalance').value = '';
+  document.getElementById('newAccountForm').classList.remove('open');
+
+  renderAccountTabs();
+  loadTradesForAccount();
+});
+
+document.getElementById('editBalanceBtn').addEventListener('click', async () => {
+  const acc = CURRENT_ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+  const val = prompt(`"${acc.name}" uchun boshlang'ich balansni kiriting (USD):`, acc.starting_balance);
+  if(val === null) return;
+
+  const num = Number(val);
+  if(isNaN(num)){ alert('Noto\'g\'ri raqam.'); return; }
+
+  const { error } = await sb
+    .from('trading_accounts')
+    .update({ starting_balance: num })
+    .eq('id', CURRENT_ACCOUNT_ID);
+
+  if(error){ alert('Xatolik: ' + error.message); return; }
+
+  acc.starting_balance = num;
+  loadTradesForAccount();
+});
+
+document.getElementById('clearAccountBtn').addEventListener('click', async () => {
+  const acc = CURRENT_ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+  if(!confirm(`"${acc.name}" hisobidagi BARCHA trade'lar o'chiriladi. Davom etasizmi?`)) return;
+
+  const { error } = await sb.from('trades').delete().eq('account_id', CURRENT_ACCOUNT_ID);
+  if(error){ alert('Xatolik: ' + error.message); return; }
+
+  loadTradesForAccount();
+});
+
+// ============ TRADE'LARNI HISOB BO'YICHA YUKLASH ============
+async function loadTradesForAccount(){
+  const { data: trades } = await sb
+    .from('trades')
+    .select('*')
+    .eq('account_id', CURRENT_ACCOUNT_ID)
+    .order('close_time', { ascending: false })
+    .limit(50);
+
+  CURRENT_TRADES = trades || [];
+
+  const tradesEmpty = document.getElementById('tradesEmpty');
+  const tradesTable = document.getElementById('tradesTable');
+  const tradesBody = document.getElementById('tradesBody');
+  const statTotal = document.getElementById('statTotal');
+  const statWinRate = document.getElementById('statWinRate');
+  const statPnl = document.getElementById('statPnl');
+  const statBalance = document.getElementById('statBalance');
+
+  const acc = CURRENT_ACCOUNTS.find(a => a.id === CURRENT_ACCOUNT_ID);
+  const startingBalance = Number(acc?.starting_balance) || 0;
+
+  if(!trades || trades.length === 0){
+    tradesEmpty.style.display = 'block';
+    tradesTable.style.display = 'none';
+    statTotal.textContent = '0';
+    statWinRate.textContent = '—';
+    statPnl.textContent = '—';
+    statBalance.textContent = startingBalance.toFixed(2);
+    return;
+  }
+
+  tradesEmpty.style.display = 'none';
+  tradesTable.style.display = 'table';
+  tradesBody.innerHTML = '';
+
+  let totalPnl = 0;
+  let wins = 0;
+
+  trades.forEach(t => {
+    const pnl = Number(t.profit) || 0;
+    totalPnl += pnl;
+    if(pnl > 0) wins++;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="mono">${t.symbol || '-'}</td>
+      <td>${t.trade_type === 'buy' ? 'Buy' : 'Sell'}</td>
+      <td class="mono">${t.lot_size ?? '-'}</td>
+      <td class="mono ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</td>
+      <td class="mono">${t.close_time ? new Date(t.close_time).toLocaleString('uz-UZ') : '-'}</td>
+      <td><button class="delete-trade-btn" data-trade-id="${t.id}" title="O'chirish">✕</button></td>
+    `;
+    tradesBody.appendChild(row);
+  });
+
+  statTotal.textContent = trades.length;
+  statWinRate.textContent = Math.round((wins / trades.length) * 100) + '%';
+  statPnl.textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(2);
+  statPnl.className = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+
+  const balance = startingBalance + totalPnl;
+  statBalance.textContent = balance.toFixed(2);
+  statBalance.className = 'stat-value ' + (balance >= startingBalance ? 'positive' : 'negative');
+
+  if(typeof renderCalendar === 'function') renderCalendar();
+}
+
+// ============ TRADE O'CHIRISH ============
+document.getElementById('tradesBody').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.delete-trade-btn');
+  if(!btn) return;
+
+  const tradeId = btn.getAttribute('data-trade-id');
+  if(!confirm('Bu trade\'ni o\'chirishni tasdiqlaysizmi?')) return;
+
+  const { error } = await sb.from('trades').delete().eq('id', tradeId);
+  if(error){
+    alert('Xatolik: ' + error.message);
+    return;
+  }
+  loadTradesForAccount();
+});
+
+// ============ SYMBOL DROPDOWN (sevimlilar bilan) ============
+const ALL_SYMBOLS = [
+  'EURUSD','GBPUSD','USDJPY','USDCHF','USDCAD','AUDUSD','NZDUSD',
+  'EURGBP','EURJPY','EURCHF','EURCAD','EURAUD','EURNZD',
+  'GBPJPY','GBPCHF','GBPCAD','GBPAUD','GBPNZD',
+  'AUDJPY','AUDCHF','AUDCAD','AUDNZD',
+  'NZDJPY','CADJPY','CHFJPY',
+  'USDTRY','USDZAR','USDMXN','USDSEK','USDNOK','USDSGD',
+  'XAUUSD','XAGUSD',
+  'BTCUSD','ETHUSD',
+  'US30','NAS100','SPX500','GER40'
+];
+const FAV_KEY = 'tradelogpro_favorite_symbols';
+
+function getFavorites(){
+  try{ return JSON.parse(localStorage.getItem(FAV_KEY)) || []; }catch(e){ return []; }
+}
+function toggleFavorite(sym){
+  let favs = getFavorites();
+  if(favs.includes(sym)) favs = favs.filter(s => s !== sym);
+  else favs.push(sym);
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+}
+
+function symbolRowHTML(sym, isFav){
+  return `<div class="symbol-option" data-symbol="${sym}">
+    <span>${sym}</span>
+    <button type="button" class="symbol-star ${isFav ? 'active' : ''}" data-star="${sym}">★</button>
+  </div>`;
+}
+function buildSymbolDropdownHTML(filter){
+  const favs = getFavorites();
+  const q = (filter || '').trim().toUpperCase();
+  const matches = ALL_SYMBOLS.filter(s => s.includes(q));
+  const favMatches = matches.filter(s => favs.includes(s));
+  const restMatches = matches.filter(s => !favs.includes(s));
+
+  let html = '';
+  if(favMatches.length){
+    html += '<div class="symbol-divider">Sevimlilar</div>';
+    favMatches.forEach(s => { html += symbolRowHTML(s, true); });
+  }
+  if(restMatches.length){
+    html += '<div class="symbol-divider">Barchasi</div>';
+    restMatches.forEach(s => { html += symbolRowHTML(s, false); });
+  }
+  return html || '<div class="symbol-option">Topilmadi</div>';
+}
+
+function wireSymbolDropdown(inputEl, dropdownEl){
+  const render = () => { dropdownEl.innerHTML = buildSymbolDropdownHTML(inputEl.value); };
+  inputEl.addEventListener('focus', () => { render(); dropdownEl.classList.add('open'); });
+  inputEl.addEventListener('input', () => { render(); dropdownEl.classList.add('open'); });
+  dropdownEl.addEventListener('click', (e) => {
+    const starBtn = e.target.closest('[data-star]');
+    if(starBtn){
+      toggleFavorite(starBtn.getAttribute('data-star'));
+      render();
+      return;
+    }
+    const row = e.target.closest('[data-symbol]');
+    if(row){
+      inputEl.value = row.getAttribute('data-symbol');
+      dropdownEl.classList.remove('open');
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('.symbol-select-wrap')) dropdownEl.classList.remove('open');
+  });
+}
+
+wireSymbolDropdown(document.getElementById('tfSymbol'), document.getElementById('symbolDropdown'));
+wireSymbolDropdown(document.getElementById('dmSymbol'), document.getElementById('dmSymbolDropdown'));
+
+// Nusxalash tugmalari
+document.addEventListener('click', (e) => {
+  if(e.target.classList.contains('copy-btn')){
+    const targetId = e.target.getAttribute('data-copy-target');
+    const text = document.getElementById(targetId).textContent;
+    navigator.clipboard.writeText(text);
+    const original = e.target.textContent;
+    e.target.textContent = 'Nusxalandi';
+    setTimeout(() => { e.target.textContent = original; }, 1500);
+  }
+});
+
+// ============ QO'LDA TRADE QO'SHISH ============
+document.getElementById('addTradeBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('addTradeBtn');
+  const statusEl = document.getElementById('addTradeStatus');
+
+  const symbol = document.getElementById('tfSymbol').value.trim().toUpperCase();
+  const tradeType = document.getElementById('tfType').value;
+  const lot = document.getElementById('tfLot').value;
+  const openPrice = document.getElementById('tfOpenPrice').value;
+  const closePrice = document.getElementById('tfClosePrice').value;
+  const profit = document.getElementById('tfProfit').value;
+  const openTime = document.getElementById('tfOpenTime').value;
+  const closeTime = document.getElementById('tfCloseTime').value;
+
+  if(!symbol || !profit){
+    statusEl.textContent = 'Symbol va P&L to\'ldirilishi shart.';
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = 'Saqlanmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const { data: { user } } = await sb.auth.getUser();
+
+  const { error } = await sb.from('trades').insert({
+    user_id: user.id,
+    account_id: CURRENT_ACCOUNT_ID,
+    ticket_id: 'manual-' + Date.now(),
+    symbol,
+    trade_type: tradeType,
+    lot_size: lot ? Number(lot) : null,
+    open_price: openPrice ? Number(openPrice) : null,
+    close_price: closePrice ? Number(closePrice) : null,
+    profit: Number(profit),
+    open_time: openTime ? new Date(openTime).toISOString() : null,
+    close_time: closeTime ? new Date(closeTime).toISOString() : new Date().toISOString()
+  });
+
+  btn.disabled = false;
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Qo\'shildi.';
+  statusEl.className = 'add-trade-status ok';
+
+  // Formani tozalash
+  ['tfSymbol','tfLot','tfOpenPrice','tfClosePrice','tfProfit','tfOpenTime','tfCloseTime'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  loadTradesForAccount();
+});
+
+// ============ RECEIPT UPLOAD ============
+let selectedFile = null;
+const uploadZone = document.getElementById('uploadZone');
+const receiptInput = document.getElementById('receiptInput');
+const fileNameEl = document.getElementById('fileName');
+const submitBtn = document.getElementById('submitReceipt');
+const payStatus = document.getElementById('payStatus');
+
+uploadZone.addEventListener('click', () => receiptInput.click());
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+});
+receiptInput.addEventListener('change', (e) => {
+  if(e.target.files[0]) setFile(e.target.files[0]);
+});
+function setFile(file){
+  selectedFile = file;
+  fileNameEl.textContent = file.name;
+  submitBtn.disabled = false;
+}
+
+submitBtn.addEventListener('click', async () => {
+  if(!selectedFile) return;
+  submitBtn.disabled = true;
+  payStatus.textContent = 'Yuklanmoqda…';
+  payStatus.className = 'pay-status';
+
+  const { data: { user } } = await sb.auth.getUser();
+  const ext = selectedFile.name.split('.').pop();
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await sb.storage.from('receipts').upload(path, selectedFile);
+  if(uploadError){
+    payStatus.textContent = 'Xatolik: ' + uploadError.message;
+    payStatus.className = 'pay-status error';
+    submitBtn.disabled = false;
+    return;
+  }
+
+  const { error: insertError } = await sb.from('payment_receipts').insert({
+    user_id: user.id,
+    receipt_url: path,
+    status: 'pending'
+  });
+
+  if(insertError){
+    payStatus.textContent = 'Xatolik: ' + insertError.message;
+    payStatus.className = 'pay-status error';
+    submitBtn.disabled = false;
+    return;
+  }
+
+  payStatus.textContent = 'Yuborildi — tekshirilishini kuting.';
+  payStatus.className = 'pay-status ok';
+  await loadSubscriptionStatus(user);
+});
+
+// ============ SESSION CHECK ============
+let DASHBOARD_INITIALIZED = false;
+
+function initDashboardOnce(user){
+  if(DASHBOARD_INITIALIZED) return;
+  DASHBOARD_INITIALIZED = true;
+  showDashboard(user);
+}
+
+sb.auth.getSession().then(({ data: { session } }) => {
+  if(session){ initDashboardOnce(session.user); }
+  else { showLogin(); }
+});
+
+sb.auth.onAuthStateChange((event, session) => {
+  if(event === 'SIGNED_IN' && session){ initDashboardOnce(session.user); }
+  if(event === 'SIGNED_OUT'){ DASHBOARD_INITIALIZED = false; showLogin(); }
+});
+
+// ============ TELEGRAM CHAT ID SAQLASH ============
+document.getElementById('saveTgChatId').addEventListener('click', async () => {
+  let val = document.getElementById('tgChatIdInput').value.trim();
+  const statusEl = document.getElementById('tgSaveStatus');
+
+  if(!val){
+    statusEl.textContent = 'Username kiriting.';
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+  if(!val.startsWith('@')) val = '@' + val;
+
+  const { error } = await sb
+    .from('profiles')
+    .update({ telegram_username: val })
+    .eq('id', CURRENT_USER.id);
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Saqlandi.';
+  statusEl.className = 'add-trade-status ok';
+});
+
+// ============ HISOBOT YARATISH (PDF / Rasm) ============
+const REPORT_SEND_URL = 'https://bexotblptuwuraitlxtk.supabase.co/functions/v1/super-responder';
+const ROWS_PER_PAGE = 12;
+
+function buildReportPages(){
+  const root = document.getElementById('reportRoot');
+  root.innerHTML = '';
+
+  const trades = CURRENT_TRADES;
+  let totalPnl = 0, wins = 0;
+  trades.forEach(t => { const p = Number(t.profit)||0; totalPnl += p; if(p>0) wins++; });
+  const winRate = trades.length ? Math.round((wins/trades.length)*100) : 0;
+
+  const chunks = [];
+  for(let i=0; i<trades.length; i += ROWS_PER_PAGE) chunks.push(trades.slice(i, i+ROWS_PER_PAGE));
+  if(chunks.length === 0) chunks.push([]);
+
+  const pages = [];
+  chunks.forEach((chunk, pageIdx) => {
+    const page = document.createElement('div');
+    page.className = 'report-page';
+
+    let headerHtml = `
+      <div class="report-header">
+        <div class="report-brand">TradeLog Pro</div>
+        <div class="report-date">${new Date().toLocaleDateString('uz-UZ')}</div>
+      </div>`;
+
+    let statsHtml = '';
+    if(pageIdx === 0){
+      statsHtml = `
+        <div class="report-stats">
+          <div class="report-stat">
+            <div class="report-stat-label">Jami trade</div>
+            <div class="report-stat-value">${trades.length}</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat-label">Yutuq foizi</div>
+            <div class="report-stat-value">${winRate}%</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat-label">Jami P&L</div>
+            <div class="report-stat-value ${totalPnl>=0?'positive':'negative'}">${totalPnl>=0?'+':''}${totalPnl.toFixed(2)}</div>
+          </div>
+        </div>`;
+    }
+
+    let rowsHtml = chunk.map(t => {
+      const pnl = Number(t.profit) || 0;
+      return `<tr>
+        <td>${t.symbol || '-'}</td>
+        <td>${t.trade_type === 'buy' ? 'Buy' : 'Sell'}</td>
+        <td>${t.lot_size ?? '-'}</td>
+        <td class="${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
+        <td>${t.close_time ? new Date(t.close_time).toLocaleDateString('uz-UZ') : '-'}</td>
+      </tr>`;
+    }).join('');
+
+    const tableHtml = chunk.length ? `
+      <table class="report-table">
+        <thead><tr><th>Symbol</th><th>Turi</th><th>Lot</th><th>P&L</th><th>Sana</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>` : `<p style="color:#8f8a7d;font-family:'IBM Plex Mono',monospace;">Hali trade yo'q.</p>`;
+
+    page.innerHTML = headerHtml + statsHtml + tableHtml +
+      `<div class="report-footer">TradeLog Pro — sahifa ${pageIdx+1}/${chunks.length}</div>`;
+
+    root.appendChild(page);
+    pages.push(page);
+  });
+
+  return pages;
+}
+
+async function renderPagesToImages(pages){
+  const images = [];
+  for(const page of pages){
+    const canvas = await html2canvas(page, { backgroundColor: '#0a0a0b', scale: 2 });
+    images.push({
+      base64: canvas.toDataURL('image/png').split(',')[1],
+      width: canvas.width,
+      height: canvas.height
+    });
+  }
+  return images;
+}
+
+async function sendReport(format){
+  const statusEl = document.getElementById('reportStatus');
+  const chatId = document.getElementById('tgChatIdInput').value.trim();
+
+  if(!chatId){
+    statusEl.textContent = 'Avval Telegram username kiriting va saqlang.';
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Hisobot tayyorlanmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const pages = buildReportPages();
+  const rendered = await renderPagesToImages(pages);
+  document.getElementById('reportRoot').innerHTML = '';
+
+  let files;
+  if(format === 'pdf'){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'px', format: [rendered[0].width, rendered[0].height] });
+    rendered.forEach((img, i) => {
+      if(i > 0) doc.addPage([img.width, img.height]);
+      doc.addImage('data:image/png;base64,' + img.base64, 'PNG', 0, 0, img.width, img.height);
+    });
+    files = [doc.output('datauristring').split(',')[1]];
+  } else {
+    files = rendered.map(img => img.base64);
+  }
+
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('webhook_token')
+    .eq('id', CURRENT_USER.id)
+    .single();
+
+  statusEl.textContent = 'Telegram\'ga yuborilmoqda…';
+
+  try{
+    const res = await fetch(REPORT_SEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: profile.webhook_token, format, files })
+    });
+    const result = await res.json();
+
+    if(result.ok === false || result.error){
+      statusEl.textContent = 'Xatolik: ' + (result.description || result.error);
+      statusEl.className = 'add-trade-status error';
+    } else {
+      statusEl.textContent = 'Hisobot Telegram\'ga yuborildi.';
+      statusEl.className = 'add-trade-status ok';
+    }
+  } catch(e){
+    statusEl.textContent = 'Xatolik: ' + e.message;
+    statusEl.className = 'add-trade-status error';
+  }
+}
+
+document.getElementById('sendPdfBtn').addEventListener('click', () => sendReport('pdf'));
+document.getElementById('sendImageBtn').addEventListener('click', () => sendReport('image'));
+
+// ============ PROFIL: ISM, NIK SAQLASH ============
+document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('profileSaveStatus');
+  const fullName = document.getElementById('pfFullName').value.trim();
+  const nickname = document.getElementById('pfNickname').value.trim();
+
+  statusEl.textContent = 'Saqlanmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const { error } = await sb
+    .from('profiles')
+    .update({ full_name: fullName, nickname })
+    .eq('id', CURRENT_USER.id);
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Saqlandi.';
+  statusEl.className = 'add-trade-status ok';
+
+  const avatarPreview = document.getElementById('avatarPreview');
+  if(!avatarPreview.querySelector('img')){
+    avatarPreview.textContent = (fullName || CURRENT_USER.email || '?').charAt(0).toUpperCase();
+  }
+});
+
+// ============ PROFIL: AVATAR YUKLASH ============
+document.getElementById('avatarUploadBtn').addEventListener('click', () => {
+  document.getElementById('avatarInput').click();
+});
+
+document.getElementById('avatarInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const statusEl = document.getElementById('profileSaveStatus');
+  statusEl.textContent = 'Rasm yuklanmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const ext = file.name.split('.').pop();
+  const path = `${CURRENT_USER.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await sb.storage
+    .from('avatars')
+    .upload(path, file, { upsert: true });
+
+  if(uploadError){
+    statusEl.textContent = 'Xatolik: ' + uploadError.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  const { data: publicUrlData } = sb.storage.from('avatars').getPublicUrl(path);
+  const avatarUrl = publicUrlData.publicUrl + '?t=' + Date.now();
+
+  const { error: updateError } = await sb
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', CURRENT_USER.id);
+
+  if(updateError){
+    statusEl.textContent = 'Xatolik: ' + updateError.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  document.getElementById('avatarPreview').innerHTML = `<img src="${avatarUrl}" alt="avatar">`;
+  statusEl.textContent = 'Rasm yangilandi.';
+  statusEl.className = 'add-trade-status ok';
+});
+
+// ============ PROFIL: EMAIL O'ZGARTIRISH ============
+document.getElementById('changeEmailBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('emailChangeStatus');
+  const newEmail = document.getElementById('pfNewEmail').value.trim();
+
+  if(!newEmail){
+    statusEl.textContent = 'Yangi email kiriting.';
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Yuborilmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const { error } = await sb.auth.updateUser({ email: newEmail });
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Tasdiqlash havolasi yangi emailingizga yuborildi. Havolani bosgach email almashadi.';
+  statusEl.className = 'add-trade-status ok';
+});
+
+// ============ PROP FIRM CALCULATOR ============
+function runPropCalc(){
+  const size = Number(document.getElementById('calcAccountSize').value) || 0;
+  const targetPct = Number(document.getElementById('calcTarget').value) || 0;
+  const dailyPct = Number(document.getElementById('calcDailyLoss').value) || 0;
+  const maxPct = Number(document.getElementById('calcMaxLoss').value) || 0;
+  const currentDD = Number(document.getElementById('calcCurrentDD').value) || 0;
+  const currentProfit = Number(document.getElementById('calcCurrentProfit').value) || 0;
+
+  const target = size * targetPct / 100;
+  const dailyLossLimit = size * dailyPct / 100;
+  const maxLossLimit = size * maxPct / 100;
+  const remainingDD = maxLossLimit - currentDD;
+  const remainingTarget = target - currentProfit;
+
+  document.getElementById('calcResTarget').textContent = target.toFixed(2);
+  document.getElementById('calcResDailyLoss').textContent = dailyLossLimit.toFixed(2);
+  document.getElementById('calcResMaxLoss').textContent = maxLossLimit.toFixed(2);
+
+  const remDDEl = document.getElementById('calcResRemainingDD');
+  remDDEl.textContent = remainingDD.toFixed(2);
+  remDDEl.className = 'calc-result-value ' + (remainingDD <= maxLossLimit * 0.25 ? 'warn' : '');
+
+  const remTargetEl = document.getElementById('calcResRemainingTarget');
+  remTargetEl.textContent = remainingTarget <= 0 ? '0.00 🎉' : remainingTarget.toFixed(2);
+  remTargetEl.className = 'calc-result-value ' + (remainingTarget <= 0 ? 'good' : '');
+
+  const statusEl = document.getElementById('calcResStatus');
+  if(remainingDD <= 0){
+    statusEl.textContent = 'Limit buzilgan';
+    statusEl.className = 'calc-result-value warn';
+  } else if(remainingTarget <= 0){
+    statusEl.textContent = 'Target bajarildi';
+    statusEl.className = 'calc-result-value good';
+  } else {
+    statusEl.textContent = 'Davom etmoqda';
+    statusEl.className = 'calc-result-value';
+  }
+}
+
+document.querySelectorAll('#secPropCalc input').forEach(input => {
+  input.addEventListener('input', runPropCalc);
+});
+runPropCalc();
+
+// ============ KALENDAR ============
+const UZ_MONTHS = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+const UZ_WEEKDAYS = ['Du','Se','Ch','Pa','Ju','Sh','Ya'];
+
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-indexed
+
+function ymd(date){
+  return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+}
+
+async function renderCalendar(){
+  document.getElementById('calendarMonthLabel').textContent = UZ_MONTHS[calMonth] + ' ' + calYear;
+
+  const monthStart = new Date(calYear, calMonth, 1);
+  const monthEnd = new Date(calYear, calMonth + 1, 1);
+
+  const { data: trades } = await sb
+    .from('trades')
+    .select('close_time, profit')
+    .eq('account_id', CURRENT_ACCOUNT_ID)
+    .gte('close_time', monthStart.toISOString())
+    .lt('close_time', monthEnd.toISOString());
+
+  const dayTotals = {}; // 'YYYY-MM-DD' -> {sum, count}
+  (trades || []).forEach(t => {
+    if(!t.close_time) return;
+    const key = ymd(new Date(t.close_time));
+    if(!dayTotals[key]) dayTotals[key] = { sum: 0, count: 0 };
+    dayTotals[key].sum += Number(t.profit) || 0;
+    dayTotals[key].count += 1;
+  });
+
+  let monthTotal = 0, monthCount = 0;
+  Object.values(dayTotals).forEach(d => { monthTotal += d.sum; monthCount += d.count; });
+  document.getElementById('calendarMonthTrades').textContent = monthCount + ' trade';
+  const monthPnlEl = document.getElementById('calendarMonthPnl');
+  monthPnlEl.textContent = (monthTotal >= 0 ? '+' : '') + '$' + monthTotal.toFixed(2);
+  monthPnlEl.style.color = monthTotal >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '';
+  UZ_WEEKDAYS.forEach(w => {
+    const el = document.createElement('div');
+    el.className = 'calendar-weekday';
+    el.textContent = w;
+    grid.appendChild(el);
+  });
+
+  // Dushanba = 0 qilib boshlash uchun offset hisoblash
+  let firstWeekday = monthStart.getDay(); // 0=Yakshanba
+  firstWeekday = (firstWeekday === 0) ? 6 : firstWeekday - 1;
+
+  for(let i=0; i<firstWeekday; i++){
+    const el = document.createElement('div');
+    el.className = 'calendar-day empty';
+    grid.appendChild(el);
+  }
+
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  for(let d=1; d<=daysInMonth; d++){
+    const key = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const info = dayTotals[key];
+    const el = document.createElement('div');
+    el.className = 'calendar-day' + (info ? (info.sum >= 0 ? ' positive' : ' negative') : '');
+    el.innerHTML = `${d}` + (info ? `<span class="day-pnl">${info.sum>=0?'+':''}${info.sum.toFixed(0)}</span>` : '');
+    el.addEventListener('click', () => openDayModal(key));
+    grid.appendChild(el);
+  }
+}
+
+document.getElementById('calendarPrevBtn').addEventListener('click', () => {
+  calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; }
+  renderCalendar();
+});
+document.getElementById('calendarNextBtn').addEventListener('click', () => {
+  calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; }
+  renderCalendar();
+});
+
+// ============ KUN MODAL OYNASI ============
+let DAY_MODAL_DATE = null;
+
+async function openDayModal(dateKey){
+  DAY_MODAL_DATE = dateKey;
+  const d = new Date(dateKey + 'T00:00:00');
+  document.getElementById('dayModalTitle').textContent = d.getDate() + ' ' + UZ_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+
+  document.getElementById('dmSymbol').value = '';
+  document.getElementById('dmLot').value = '';
+  document.getElementById('dmProfit').value = '';
+  document.getElementById('dmAddTradeStatus').textContent = '';
+
+  await loadDayModalTrades();
+  document.getElementById('dayModalBackdrop').classList.add('open');
+}
+
+async function loadDayModalTrades(){
+  const dayStart = new Date(DAY_MODAL_DATE + 'T00:00:00');
+  const dayEnd = new Date(DAY_MODAL_DATE + 'T23:59:59');
+
+  const { data: trades } = await sb
+    .from('trades')
+    .select('*')
+    .eq('account_id', CURRENT_ACCOUNT_ID)
+    .gte('close_time', dayStart.toISOString())
+    .lte('close_time', dayEnd.toISOString())
+    .order('close_time', { ascending: true });
+
+  const listEl = document.getElementById('dayModalTradesList');
+  if(!trades || trades.length === 0){
+    listEl.innerHTML = '<div class="day-modal-empty">Bu kunda hali trade yo\'q.</div>';
+    return;
+  }
+
+  listEl.innerHTML = trades.map(t => {
+    const pnl = Number(t.profit) || 0;
+    return `<div class="day-modal-trade-row">
+      <span>${t.symbol} · ${t.trade_type === 'buy' ? 'Buy' : 'Sell'} · ${t.lot_size ?? '-'}</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <span style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}${pnl.toFixed(2)}</span>
+        <button class="delete-trade-btn" data-day-trade-id="${t.id}" title="O'chirish">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('dayModalTradesList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-day-trade-id]');
+  if(!btn) return;
+  if(!confirm('Bu trade\'ni o\'chirishni tasdiqlaysizmi?')) return;
+
+  await sb.from('trades').delete().eq('id', btn.getAttribute('data-day-trade-id'));
+  await loadDayModalTrades();
+  renderCalendar();
+  loadTradesForAccount();
+});
+
+document.getElementById('dmAddTradeBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('dmAddTradeStatus');
+  const symbol = document.getElementById('dmSymbol').value.trim().toUpperCase();
+  const tradeType = document.getElementById('dmType').value;
+  const lot = document.getElementById('dmLot').value;
+  const profit = document.getElementById('dmProfit').value;
+
+  if(!symbol || !profit){
+    statusEl.textContent = 'Symbol va P&L to\'ldirilishi shart.';
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  const closeTime = new Date(DAY_MODAL_DATE + 'T12:00:00').toISOString();
+
+  const { error } = await sb.from('trades').insert({
+    user_id: CURRENT_USER.id,
+    account_id: CURRENT_ACCOUNT_ID,
+    ticket_id: 'manual-' + Date.now(),
+    symbol,
+    trade_type: tradeType,
+    lot_size: lot ? Number(lot) : null,
+    profit: Number(profit),
+    close_time: closeTime
+  });
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  document.getElementById('dmSymbol').value = '';
+  document.getElementById('dmLot').value = '';
+  document.getElementById('dmProfit').value = '';
+  statusEl.textContent = 'Qo\'shildi.';
+  statusEl.className = 'add-trade-status ok';
+
+  await loadDayModalTrades();
+  renderCalendar();
+  loadTradesForAccount();
+});
+
+document.getElementById('dayModalClose').addEventListener('click', () => {
+  document.getElementById('dayModalBackdrop').classList.remove('open');
+});
+document.getElementById('dayModalBackdrop').addEventListener('click', (e) => {
+  if(e.target.id === 'dayModalBackdrop') document.getElementById('dayModalBackdrop').classList.remove('open');
+});
+</script>
+</body>
+</html>
