@@ -143,7 +143,11 @@
     gap:10px;
     z-index:2;
   }
-  .brand-mark .dot{ width:7px; height:7px; border-radius:50%; background: var(--gold-bright); box-shadow: 0 0 12px var(--gold-bright); }
+  .brand-mark .dot{ width:7px; height:7px; border-radius:50%; background: var(--gold-bright); box-shadow: 0 0 12px var(--gold-bright); animation: dotPulse 2.4s ease-in-out infinite; }
+  @keyframes dotPulse{
+    0%, 100%{ opacity: 1; transform: scale(1); }
+    50%{ opacity: 0.55; transform: scale(0.8); }
+  }
   .visual-copy{ z-index:2; max-width: 460px; }
   .visual-copy .eyebrow{
     font-family: var(--font-mono);
@@ -247,6 +251,14 @@
     justify-content:space-between;
     padding: 20px 36px;
     border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  header.dash-nav::after{
+    content:'';
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    height:1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
   }
   header.dash-nav .brand-mark{ font-size: 18px; }
   .nav-right{ display:flex; align-items:center; gap:18px; }
@@ -462,20 +474,37 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 20px;
+    padding: 22px 22px 22px 20px;
+    display:flex;
+    align-items:flex-start;
+    gap: 14px;
   }
+  .stat-icon{
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(212,175,55,0.1);
+    border: 1px solid rgba(212,175,55,0.25);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .stat-body{ min-width:0; }
   .stat-label{
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .stat-value{
     font-family: var(--font-display);
-    font-size: 24px;
-    font-weight: 500;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
   }
   .stat-value.positive{ color: var(--green); }
   .stat-value.negative{ color: var(--red); }
@@ -518,29 +547,36 @@
   .accounts-bar{
     display:flex;
     align-items:center;
-    gap: 10px;
+    gap: 6px;
     margin-bottom: 20px;
     flex-wrap:wrap;
-  }
-  .account-tab{
     background: var(--surface);
     border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 6px;
+  }
+  .account-tab{
+    background: none;
+    border: 1px solid transparent;
     color: var(--muted);
     font-family: var(--font-body);
     font-size: 13px;
     font-weight: 500;
-    padding: 9px 16px;
-    border-radius: 999px;
+    padding: 8px 15px;
+    border-radius: 10px;
     cursor:pointer;
     display:flex;
     align-items:center;
     gap: 8px;
+    transition: background .15s ease, color .15s ease;
   }
   .account-tab.active{
-    background: rgba(212,175,55,0.1);
-    border-color: var(--gold-dim);
-    color: var(--gold-bright);
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #14120a;
+    font-weight: 600;
   }
+  .account-tab.active .account-tab-x{ color: #14120a; opacity: 0.7; }
   .account-tab-x{
     opacity: 0.6;
     font-size: 11px;
@@ -688,18 +724,22 @@
     text-align:left;
     background:none;
     border:none;
+    border-left: 2px solid transparent;
     color: var(--muted);
     font-family: var(--font-body);
     font-size: 13.5px;
     font-weight: 500;
     padding: 11px 14px;
-    border-radius: 10px;
+    border-radius: 0 10px 10px 0;
     cursor:pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
   }
   .sidebar-link:hover{ background: var(--surface); color: var(--text); }
   .sidebar-link.active{
     background: rgba(212,175,55,0.1);
     color: var(--gold-bright);
+    border-left-color: var(--gold-bright);
+    font-weight: 600;
   }
   .journal-content{ flex:1; min-width:0; }
   .journal-panel{ display:none; }
@@ -1333,20 +1373,32 @@
 
               <div class="stats-bar">
                 <div class="stat-box">
-                  <div class="stat-label">Balans</div>
-                  <div class="stat-value" id="statBalance">—</div>
+                  <div class="stat-icon">💰</div>
+                  <div class="stat-body">
+                    <div class="stat-label">Balans</div>
+                    <div class="stat-value" id="statBalance">—</div>
+                  </div>
                 </div>
                 <div class="stat-box">
-                  <div class="stat-label">Jami trade</div>
-                  <div class="stat-value" id="statTotal">0</div>
+                  <div class="stat-icon">📊</div>
+                  <div class="stat-body">
+                    <div class="stat-label">Jami trade</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                  </div>
                 </div>
                 <div class="stat-box">
-                  <div class="stat-label">Yutuq foizi</div>
-                  <div class="stat-value" id="statWinRate">—</div>
+                  <div class="stat-icon">🎯</div>
+                  <div class="stat-body">
+                    <div class="stat-label">Yutuq foizi</div>
+                    <div class="stat-value" id="statWinRate">—</div>
+                  </div>
                 </div>
                 <div class="stat-box">
-                  <div class="stat-label">Jami P&L</div>
-                  <div class="stat-value" id="statPnl">—</div>
+                  <div class="stat-icon">📈</div>
+                  <div class="stat-body">
+                    <div class="stat-label">Jami P&L</div>
+                    <div class="stat-value" id="statPnl">—</div>
+                  </div>
                 </div>
               </div>
 
@@ -2166,20 +2218,43 @@ function renderEquityCurve(trades, startingBalance){
       datasets: [{
         data: dataPoints,
         borderColor: gold,
-        backgroundColor: 'rgba(212,175,55,0.08)',
+        backgroundColor: 'rgba(212,175,55,0.10)',
         fill: true,
-        tension: 0.25,
+        tension: 0.3,
         pointRadius: 0,
-        borderWidth: 2
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: gold,
+        pointHoverBorderColor: '#14120a',
+        pointHoverBorderWidth: 2,
+        borderWidth: 2.5
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false } },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#14120a',
+          titleColor: muted,
+          bodyColor: gold,
+          bodyFont: { family: 'IBM Plex Mono', size: 12, weight: 'bold' },
+          padding: 10,
+          cornerRadius: 8,
+          displayColors: false,
+          callbacks: {
+            label: (ctx) => '$' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          }
+        }
+      },
       scales: {
         x: { display: false },
         y: {
-          ticks: { color: muted, font: { family: 'IBM Plex Mono', size: 10 } },
+          ticks: {
+            color: muted,
+            font: { family: 'IBM Plex Mono', size: 10.5 },
+            callback: (val) => '$' + (Math.abs(val) >= 1000 ? (val/1000).toFixed(1).replace(/\.0$/,'') + 'K' : val)
+          },
           grid: { color: border }
         }
       }
