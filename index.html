@@ -45,8 +45,9 @@
   html,body{ height:100%; overflow-x: hidden; }
   body{
     background:
-      radial-gradient(1200px 600px at 15% -10%, rgba(212,175,55,0.05) 0%, transparent 55%),
-      radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,0.03) 0%, transparent 50%),
+      radial-gradient(1200px 600px at 15% -10%, rgba(212,175,55,0.06) 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, rgba(212,175,55,0.04) 0%, transparent 50%),
+      radial-gradient(1000px 700px at 50% 120%, rgba(212,175,55,0.03) 0%, transparent 60%),
       var(--bg);
     color: var(--text);
     font-family: var(--font-body);
@@ -72,8 +73,25 @@
   /* Kartalarga nafis chuqurlik (soya) berish */
   .status-card, .journal-card, .trades-card, .add-trade-card,
   .calc-card, .calendar-card, .profile-card, .stat-box,
-  .calc-result-box, .pay-card, .day-modal{
+  .calc-result-box, .pay-card, .day-modal, .winloss-card, .equity-card{
     box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 10px 30px rgba(0,0,0,0.35);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .stat-box, .status-card, .equity-card, .winloss-card{
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-box::before, .status-card::before, .equity-card::before, .winloss-card::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:2px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), var(--gold-bright), var(--gold-dim), transparent);
+    opacity: 0.55;
+  }
+  .stat-box:hover, .equity-card:hover, .winloss-card:hover, .trades-card:hover, .journal-card:hover, .calc-card:hover, .calendar-card:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 16px 40px rgba(0,0,0,0.45);
   }
 
   /* ============ LOGIN VIEW ============ */
@@ -240,9 +258,9 @@
   .theme-toggle-btn:hover{ border-color: var(--gold-dim); }
 
   main.dash-main{
-    max-width: 760px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 56px 24px 80px;
+    padding: 56px 40px 80px;
   }
   .status-card{
     background: var(--surface);
