@@ -81,6 +81,24 @@
     position: relative;
     overflow: hidden;
   }
+  .card-eyebrow{
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+    display:flex;
+    align-items:center;
+    gap: 7px;
+  }
+  .card-eyebrow::before{
+    content:'';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--gold-bright);
+    box-shadow: 0 0 6px var(--gold-bright);
+  }
   .stat-box::before, .status-card::before, .equity-card::before, .winloss-card::before{
     content:'';
     position:absolute;
@@ -889,12 +907,11 @@
   }
   .calendar-day{
     min-width: 0;
-    aspect-ratio: 1;
-    min-height: 52px;
+    height: 76px;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 8px;
+    border-radius: 10px;
+    padding: 8px;
     box-sizing: border-box;
     cursor:pointer;
     font-family: var(--font-mono);
@@ -902,21 +919,35 @@
     color: var(--muted);
     display:flex;
     flex-direction:column;
-    justify-content:flex-start;
+    align-items:center;
+    justify-content:center;
+    gap: 5px;
     overflow: hidden;
-    transition: transform .12s ease;
+    transition: transform .15s ease, box-shadow .15s ease;
   }
-  .calendar-day:hover{ transform: translateY(-2px); border-color: var(--gold-dim); }
+  .calendar-day:hover{ transform: translateY(-2px) scale(1.03); border-color: var(--gold-dim); box-shadow: 0 8px 18px rgba(0,0,0,0.35); z-index: 2; }
   .calendar-day.empty{ visibility:hidden; cursor:default; }
-  .calendar-day.positive{ background: rgba(62,207,142,0.14); border-color: rgba(62,207,142,0.3); color: var(--text); font-weight:600; }
-  .calendar-day.negative{ background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.3); color: var(--text); font-weight:600; }
-  .calendar-day .day-pnl{ font-size: 10.5px; margin-top: 4px; white-space: nowrap; }
+  .calendar-day .day-num{ font-size: 13px; }
+  .calendar-day.positive{ background: rgba(62,207,142,0.12); border-color: rgba(62,207,142,0.3); }
+  .calendar-day.positive .day-num{ color: var(--text); font-weight:600; }
+  .calendar-day.negative{ background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); }
+  .calendar-day.negative .day-num{ color: var(--text); font-weight:600; }
+  .calendar-day .day-pnl{
+    font-size: 10px;
+    white-space: nowrap;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .calendar-day.positive .day-pnl{ background: rgba(62,207,142,0.22); color: var(--green); }
+  .calendar-day.negative .day-pnl{ background: rgba(239,68,68,0.22); color: var(--red); }
 
   @media (max-width: 480px){
     .calendar-card{ padding: 16px 10px; }
     .calendar-grid{ gap: 4px; }
-    .calendar-day{ min-height: 36px; padding: 4px 5px; font-size: 10px; border-radius: 6px; }
-    .calendar-day .day-pnl{ font-size: 8px; margin-top: 2px; }
+    .calendar-day{ height: 46px; padding: 4px; gap: 2px; border-radius: 7px; }
+    .calendar-day .day-num{ font-size: 10px; }
+    .calendar-day .day-pnl{ font-size: 7px; padding: 1px 5px; }
     .calendar-weekday{ font-size: 8.5px; padding-bottom: 4px; }
     .calendar-nav h4{ font-size: 16px; }
   }
@@ -1320,6 +1351,7 @@
               </div>
 
               <div class="equity-card">
+                <div class="card-eyebrow">Balans dinamikasi</div>
                 <h4>Equity Curve</h4>
                 <div id="equityEmpty" class="empty-state" style="display:none;">
                   <p>Grafik uchun trade kerak.</p>
@@ -1328,6 +1360,7 @@
               </div>
 
               <div class="winloss-card">
+                <div class="card-eyebrow">Statistika</div>
                 <div class="winloss-row">
                   <div class="winloss-label">
                     <span class="wl-dot win"></span> YUTUQLAR: <b id="wlWinCount">0</b>
@@ -2867,7 +2900,7 @@ async function renderCalendar(){
     const info = dayTotals[key];
     const el = document.createElement('div');
     el.className = 'calendar-day' + (info ? (info.sum >= 0 ? ' positive' : ' negative') : '');
-    el.innerHTML = `${d}` + (info ? `<span class="day-pnl">${info.sum>=0?'+':''}${info.sum.toFixed(0)}</span>` : '');
+    el.innerHTML = `<span class="day-num">${d}</span>` + (info ? `<span class="day-pnl">${info.sum>=0?'+':''}${info.sum.toFixed(0)}</span>` : '');
     el.addEventListener('click', () => openDayModal(key));
     grid.appendChild(el);
   }
