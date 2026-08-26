@@ -910,6 +910,46 @@
   .calc-result-value.warn{ color: var(--red); }
   .calc-result-value.good{ color: var(--green); }
 
+  /* ============ STREAK BADGE ============ */
+  .streak-badge{
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .streak-badge.win{ color: var(--green); }
+  .streak-badge.loss{ color: var(--red); }
+
+  /* ============ SAVDO SESSIYALARI ============ */
+  .session-list{ display:flex; flex-direction:column; gap: 10px; }
+  .session-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .session-item.open{ border-color: rgba(62,207,142,0.35); }
+  .session-name{ font-family: var(--font-body); font-size: 14px; font-weight: 500; }
+  .session-time{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .session-status{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .session-status.open{ background: rgba(62,207,142,0.15); color: var(--green); border: 1px solid rgba(62,207,142,0.35); }
+  .session-status.closed{ background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+
   /* ============ KALENDAR ============ */
   .calendar-card{
     background: var(--surface);
@@ -1359,6 +1399,8 @@
             <button class="sidebar-link" data-target="secEA">⚙️ EA sozlamalari</button>
             <button class="sidebar-link" data-target="secProfile">👤 Profil</button>
             <button class="sidebar-link" data-target="secPropCalc">🧮 Prop Calculator</button>
+            <button class="sidebar-link" data-target="secSessions">🕐 Sessiyalar</button>
+            <button class="sidebar-link" data-target="secLotCalc">⚖️ Lot Calculator</button>
           </nav>
 
           <div class="journal-content">
@@ -1443,6 +1485,7 @@
                   <div><span class="wl-summary-label">O'rtacha yutuq</span><span class="wl-summary-value positive" id="wlAvgWin">$0.00</span></div>
                   <div><span class="wl-summary-label">O'rtacha zarar</span><span class="wl-summary-value negative" id="wlAvgLoss">$0.00</span></div>
                 </div>
+                <div class="streak-badge" id="streakBadge" style="display:none;"></div>
               </div>
 
               <div class="account-actions">
@@ -1682,6 +1725,76 @@
                   <div class="calc-result-box">
                     <div class="calc-result-label">Holat</div>
                     <div class="calc-result-value" id="calcResStatus">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="secSessions" class="journal-panel">
+              <div class="calc-card">
+                <div class="card-eyebrow">Bozor vaqti</div>
+                <h4>Savdo sessiyalari</h4>
+                <p class="sub">Vaqtlar sizning qurilma vaqtingiz bo'yicha (O'zbekiston, UTC+5).</p>
+
+                <div class="session-list" id="sessionList"></div>
+              </div>
+
+              <div class="calc-card">
+                <div class="card-eyebrow">Tahlil</div>
+                <h4>Sessiya bo'yicha samaradorlik</h4>
+                <p class="sub">Har bir sessiyada qilingan trade'laringiz yutuq foizi va soni.</p>
+
+                <div id="sessionStatsEmpty" class="empty-state">
+                  <p>Tahlil uchun trade kerak.</p>
+                </div>
+                <table class="trades-table" id="sessionStatsTable" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th>Sessiya</th>
+                      <th>Vaqt</th>
+                      <th>Yutuq foizi</th>
+                      <th>Yutuq soni</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sessionStatsBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="secLotCalc" class="journal-panel">
+              <div class="calc-card">
+                <div class="card-eyebrow">Risk boshqaruvi</div>
+                <h4>Lot Calculator</h4>
+                <p class="sub">Risk foizi va stop-loss masofasiga qarab qancha lot bilan kirish xavfsizligini hisoblang.</p>
+
+                <div class="calc-grid">
+                  <div class="form-field">
+                    <label>Balans (USD)</label>
+                    <input type="number" step="0.01" id="lotBalance" value="1000">
+                  </div>
+                  <div class="form-field">
+                    <label>Risk (%)</label>
+                    <input type="number" step="0.1" id="lotRiskPct" value="1">
+                  </div>
+                  <div class="form-field">
+                    <label>Stop-Loss (pips)</label>
+                    <input type="number" step="1" id="lotStopLoss" value="20">
+                  </div>
+                  <div class="form-field">
+                    <label>Pip qiymati (1.0 lot, USD)</label>
+                    <input type="number" step="0.1" id="lotPipValue" value="10">
+                  </div>
+                </div>
+                <p class="sub" style="font-size:11.5px; margin-bottom:20px;">Standart juftliklar (masalan EURUSD, GBPUSD) uchun 1.0 lotda pip qiymati odatda ~$10. XAUUSD va boshqa instrumentlar uchun brokeringizdan aniq qiymatni tekshiring.</p>
+
+                <div class="calc-results" style="grid-template-columns: repeat(2, 1fr);">
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Risk summasi ($)</div>
+                    <div class="calc-result-value" id="lotResRisk">—</div>
+                  </div>
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Tavsiya etilgan lot</div>
+                    <div class="calc-result-value" id="lotResSize">—</div>
                   </div>
                 </div>
               </div>
@@ -2292,6 +2405,24 @@ function renderWinLoss(trades){
   document.getElementById('wlLossBar').style.width = lossPct + '%';
   document.getElementById('wlAvgWin').textContent = '+$' + avgWin.toFixed(2);
   document.getElementById('wlAvgLoss').textContent = '-$' + Math.abs(avgLoss).toFixed(2);
+
+  // Joriy seriya (streak) — eng so'nggidan boshlab bir xil natijalar
+  const badge = document.getElementById('streakBadge');
+  if(!trades.length){
+    badge.style.display = 'none';
+  } else {
+    const sortedDesc = [...trades].sort((a,b) => new Date(b.close_time||0) - new Date(a.close_time||0));
+    const firstIsWin = (Number(sortedDesc[0].profit) || 0) > 0;
+    let streak = 0;
+    for(const t of sortedDesc){
+      const isWin = (Number(t.profit) || 0) > 0;
+      if(isWin === firstIsWin) streak++;
+      else break;
+    }
+    badge.style.display = 'flex';
+    badge.className = 'streak-badge ' + (firstIsWin ? 'win' : 'loss');
+    badge.textContent = (firstIsWin ? '🔥 ' : '⚠️ ') + streak + ' ta ketma-ket ' + (firstIsWin ? 'yutuq' : 'zarar');
+  }
 }
 
 async function loadTradesForAccount(){
@@ -2325,6 +2456,7 @@ async function loadTradesForAccount(){
     statBalance.textContent = startingBalance.toFixed(2);
     renderEquityCurve([], startingBalance);
     renderWinLoss([]);
+    renderSessionStats([]);
     if(typeof renderCalendar === 'function') renderCalendar();
     return;
   }
@@ -2351,6 +2483,7 @@ async function loadTradesForAccount(){
 
   renderEquityCurve(CURRENT_TRADES, startingBalance);
   renderWinLoss(CURRENT_TRADES);
+  renderSessionStats(CURRENT_TRADES);
 
   if(typeof renderCalendar === 'function') renderCalendar();
 }
@@ -3109,6 +3242,93 @@ document.getElementById('dayModalClose').addEventListener('click', () => {
 document.getElementById('dayModalBackdrop').addEventListener('click', (e) => {
   if(e.target.id === 'dayModalBackdrop') document.getElementById('dayModalBackdrop').classList.remove('open');
 });
+
+// ============ SAVDO SESSIYALARI ============
+const TRADING_SESSIONS = [
+  { name: 'Tinch okean (Tixookeanskiy)', start: 3, end: 12 },
+  { name: 'Osiyo (Aziyatskaya)', start: 5, end: 14 },
+  { name: 'Yevropa (Yevropeyskaya)', start: 12, end: 21 },
+  { name: 'Amerika (Amerikanskaya)', start: 17, end: 2 }
+];
+
+function isHourInSession(hour, start, end){
+  if(start <= end) return hour >= start && hour < end;
+  return hour >= start || hour < end; // Yarim tunni kesib o'tadigan sessiya (masalan 17:00-02:00)
+}
+
+function renderSessionsList(){
+  const list = document.getElementById('sessionList');
+  const nowHour = new Date().getHours();
+  list.innerHTML = '';
+
+  TRADING_SESSIONS.forEach(s => {
+    const open = isHourInSession(nowHour, s.start, s.end);
+    const item = document.createElement('div');
+    item.className = 'session-item' + (open ? ' open' : '');
+    item.innerHTML = `
+      <div>
+        <div class="session-name">${s.name}</div>
+        <div class="session-time">${String(s.start).padStart(2,'0')}:00 – ${String(s.end).padStart(2,'0')}:00</div>
+      </div>
+      <div class="session-status ${open ? 'open' : 'closed'}">${open ? 'Ochiq' : 'Yopiq'}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+renderSessionsList();
+setInterval(renderSessionsList, 60000);
+
+function renderSessionStats(trades){
+  const emptyEl = document.getElementById('sessionStatsEmpty');
+  const tableEl = document.getElementById('sessionStatsTable');
+  const bodyEl = document.getElementById('sessionStatsBody');
+
+  if(!trades.length){
+    emptyEl.style.display = 'block';
+    tableEl.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  tableEl.style.display = 'table';
+  bodyEl.innerHTML = '';
+
+  TRADING_SESSIONS.forEach(s => {
+    const sessionTrades = trades.filter(t => {
+      if(!t.close_time) return false;
+      const hour = new Date(t.close_time).getHours();
+      return isHourInSession(hour, s.start, s.end);
+    });
+    const wins = sessionTrades.filter(t => (Number(t.profit) || 0) > 0);
+    const winRate = sessionTrades.length ? Math.round((wins.length / sessionTrades.length) * 100) : 0;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${s.name}</td>
+      <td class="mono">${String(s.start).padStart(2,'0')}:00–${String(s.end).padStart(2,'0')}:00</td>
+      <td class="mono ${winRate >= 50 ? 'positive' : ''}">${sessionTrades.length ? winRate + '%' : '—'}</td>
+      <td class="mono">${wins.length} ta</td>
+    `;
+    bodyEl.appendChild(row);
+  });
+}
+
+// ============ LOT CALCULATOR ============
+function runLotCalc(){
+  const balance = Number(document.getElementById('lotBalance').value) || 0;
+  const riskPct = Number(document.getElementById('lotRiskPct').value) || 0;
+  const stopLoss = Number(document.getElementById('lotStopLoss').value) || 0;
+  const pipValue = Number(document.getElementById('lotPipValue').value) || 0;
+
+  const riskAmount = balance * riskPct / 100;
+  const lotSize = (stopLoss > 0 && pipValue > 0) ? riskAmount / (stopLoss * pipValue) : 0;
+
+  document.getElementById('lotResRisk').textContent = '$' + riskAmount.toFixed(2);
+  document.getElementById('lotResSize').textContent = lotSize > 0 ? lotSize.toFixed(2) : '—';
+}
+document.querySelectorAll('#secLotCalc input').forEach(input => {
+  input.addEventListener('input', runLotCalc);
+});
+runLotCalc();
 </script>
 </body>
 </html>
