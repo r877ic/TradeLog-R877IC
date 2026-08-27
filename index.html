@@ -513,7 +513,8 @@
   .empty-state{ padding: 24px 0; text-align:center; }
   .empty-state p{ color: var(--muted); font-size: 13.5px; }
 
-  .trades-table{ width:100%; border-collapse: collapse; }
+  .table-scroll{ overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+  .trades-table{ width:100%; min-width: 560px; border-collapse: collapse; }
   .trades-table th{
     text-align:left;
     font-family: var(--font-mono);
@@ -1566,20 +1567,22 @@
                 <div id="tradesEmpty" class="empty-state">
                   <p>Hali trade yo'q. EA sozlangach, yopilgan savdolar shu yerda avtomatik chiqadi.</p>
                 </div>
-                <table class="trades-table" id="tradesTable" style="display:none;">
-                  <thead>
-                    <tr>
-                      <th>Symbol</th>
-                      <th>Turi</th>
-                      <th>Lot</th>
-                      <th>Davomiylik</th>
-                      <th>P&L</th>
-                      <th>Yopilgan vaqt</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="tradesBody"></tbody>
-                </table>
+                <div class="table-scroll">
+                  <table class="trades-table" id="tradesTable" style="display:none;">
+                    <thead>
+                      <tr>
+                        <th>Symbol</th>
+                        <th>Turi</th>
+                        <th>Lot</th>
+                        <th>Davomiylik</th>
+                        <th>P&L</th>
+                        <th>Yopilgan vaqt</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="tradesBody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -1747,17 +1750,19 @@
                 <div id="sessionStatsEmpty" class="empty-state">
                   <p>Tahlil uchun trade kerak.</p>
                 </div>
-                <table class="trades-table" id="sessionStatsTable" style="display:none;">
-                  <thead>
-                    <tr>
-                      <th>Sessiya</th>
-                      <th>Vaqt</th>
-                      <th>Yutuq foizi</th>
-                      <th>Yutuq soni</th>
-                    </tr>
-                  </thead>
-                  <tbody id="sessionStatsBody"></tbody>
-                </table>
+                <div class="table-scroll">
+                  <table class="trades-table" id="sessionStatsTable" style="display:none;">
+                    <thead>
+                      <tr>
+                        <th>Sessiya</th>
+                        <th>Vaqt</th>
+                        <th>Yutuq foizi</th>
+                        <th>Yutuq soni</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sessionStatsBody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -1765,9 +1770,23 @@
               <div class="calc-card">
                 <div class="card-eyebrow">Risk boshqaruvi</div>
                 <h4>Lot Calculator</h4>
-                <p class="sub">Risk foizi va stop-loss masofasiga qarab qancha lot bilan kirish xavfsizligini hisoblang.</p>
+                <p class="sub">Kirish va Stop-Loss narxi asosida — "pips" atamasidagi chalkashlik bo'lmasligi uchun.</p>
 
                 <div class="calc-grid">
+                  <div class="form-field">
+                    <label>Instrument turi</label>
+                    <select id="lotInstrumentPreset">
+                      <option value="100000">Forex (standart, masalan EURUSD)</option>
+                      <option value="100">Oltin (XAUUSD)</option>
+                      <option value="5000">Kumush (XAGUSD)</option>
+                      <option value="1">Kripto / boshqa (1:1)</option>
+                      <option value="custom">Boshqa (qo'lda kiritish)</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label>Kontrakt hajmi (1.0 lot uchun birlik)</label>
+                    <input type="number" step="1" id="lotContractSize" value="100000">
+                  </div>
                   <div class="form-field">
                     <label>Balans (USD)</label>
                     <input type="number" step="0.01" id="lotBalance" value="1000">
@@ -1777,17 +1796,21 @@
                     <input type="number" step="0.1" id="lotRiskPct" value="1">
                   </div>
                   <div class="form-field">
-                    <label>Stop-Loss (pips)</label>
-                    <input type="number" step="1" id="lotStopLoss" value="20">
+                    <label>Kirish narxi (Entry)</label>
+                    <input type="number" step="0.00001" id="lotEntryPrice" placeholder="masalan 4600">
                   </div>
                   <div class="form-field">
-                    <label>Pip qiymati (1.0 lot, USD)</label>
-                    <input type="number" step="0.1" id="lotPipValue" value="10">
+                    <label>Stop-Loss narxi</label>
+                    <input type="number" step="0.00001" id="lotStopPrice" placeholder="masalan 4595">
                   </div>
                 </div>
-                <p class="sub" style="font-size:11.5px; margin-bottom:20px;">Standart juftliklar (masalan EURUSD, GBPUSD) uchun 1.0 lotda pip qiymati odatda ~$10. XAUUSD va boshqa instrumentlar uchun brokeringizdan aniq qiymatni tekshiring.</p>
+                <p class="sub" style="font-size:11.5px; margin-bottom:20px;">Masalan XAUUSD'da Entry 4600, SL 4595 kiritilsa — narx farqi (5.0) avtomatik hisoblanadi, "pips" so'ramaydi. Kontrakt hajmi noto'g'ri tuyulsa, brokeringizning spetsifikatsiyasidan tekshirib, qo'lda kiritib qo'ying.</p>
 
-                <div class="calc-results" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="calc-results" style="grid-template-columns: repeat(3, 1fr);">
+                  <div class="calc-result-box">
+                    <div class="calc-result-label">Narx farqi</div>
+                    <div class="calc-result-value" id="lotResDistance">—</div>
+                  </div>
                   <div class="calc-result-box">
                     <div class="calc-result-label">Risk summasi ($)</div>
                     <div class="calc-result-value" id="lotResRisk">—</div>
@@ -3245,10 +3268,10 @@ document.getElementById('dayModalBackdrop').addEventListener('click', (e) => {
 
 // ============ SAVDO SESSIYALARI ============
 const TRADING_SESSIONS = [
-  { name: 'Tinch okean (Tixookeanskiy)', start: 3, end: 12 },
-  { name: 'Osiyo (Aziyatskaya)', start: 5, end: 14 },
-  { name: 'Yevropa (Yevropeyskaya)', start: 12, end: 21 },
-  { name: 'Amerika (Amerikanskaya)', start: 17, end: 2 }
+  { name: 'Tinch okean', start: 3, end: 12 },
+  { name: 'Osiyo', start: 5, end: 14 },
+  { name: 'Yevropa', start: 12, end: 21 },
+  { name: 'Amerika', start: 17, end: 2 }
 ];
 
 function isHourInSession(hour, start, end){
@@ -3316,15 +3339,27 @@ function renderSessionStats(trades){
 function runLotCalc(){
   const balance = Number(document.getElementById('lotBalance').value) || 0;
   const riskPct = Number(document.getElementById('lotRiskPct').value) || 0;
-  const stopLoss = Number(document.getElementById('lotStopLoss').value) || 0;
-  const pipValue = Number(document.getElementById('lotPipValue').value) || 0;
+  const entryPrice = Number(document.getElementById('lotEntryPrice').value) || 0;
+  const stopPrice = Number(document.getElementById('lotStopPrice').value) || 0;
+  const contractSize = Number(document.getElementById('lotContractSize').value) || 0;
 
+  const priceDistance = Math.abs(entryPrice - stopPrice);
   const riskAmount = balance * riskPct / 100;
-  const lotSize = (stopLoss > 0 && pipValue > 0) ? riskAmount / (stopLoss * pipValue) : 0;
+  const lotSize = (priceDistance > 0 && contractSize > 0) ? riskAmount / (priceDistance * contractSize) : 0;
 
+  document.getElementById('lotResDistance').textContent = priceDistance > 0 ? priceDistance.toFixed(5).replace(/0+$/,'').replace(/\.$/,'') : '—';
   document.getElementById('lotResRisk').textContent = '$' + riskAmount.toFixed(2);
   document.getElementById('lotResSize').textContent = lotSize > 0 ? lotSize.toFixed(2) : '—';
 }
+
+document.getElementById('lotInstrumentPreset').addEventListener('change', (e) => {
+  const val = e.target.value;
+  if(val !== 'custom'){
+    document.getElementById('lotContractSize').value = val;
+    runLotCalc();
+  }
+});
+
 document.querySelectorAll('#secLotCalc input').forEach(input => {
   input.addEventListener('input', runLotCalc);
 });
