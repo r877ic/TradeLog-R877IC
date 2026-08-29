@@ -2788,6 +2788,12 @@ document.getElementById('saveTgChatId').addEventListener('click', async () => {
 const REPORT_SEND_URL = 'https://bexotblptuwuraitlxtk.supabase.co/functions/v1/super-responder';
 const ROWS_PER_PAGE = 12;
 
+const REPORT_MONTHS_UZ = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+function formatUzDate(d){
+  const date = new Date(d);
+  return date.getDate() + ' ' + REPORT_MONTHS_UZ[date.getMonth()] + ' ' + date.getFullYear();
+}
+
 function buildReportPages(){
   const root = document.getElementById('reportRoot');
   root.innerHTML = '';
@@ -2809,7 +2815,7 @@ function buildReportPages(){
     let headerHtml = `
       <div class="report-header">
         <div class="report-brand">TradeLog Pro</div>
-        <div class="report-date">${new Date().toLocaleDateString('uz-UZ')}</div>
+        <div class="report-date">${formatUzDate(new Date())}</div>
       </div>`;
 
     let statsHtml = '';
@@ -2838,7 +2844,7 @@ function buildReportPages(){
         <td>${t.trade_type === 'buy' ? 'Buy' : 'Sell'}</td>
         <td>${t.lot_size ?? '-'}</td>
         <td class="${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
-        <td>${t.close_time ? new Date(t.close_time).toLocaleDateString('uz-UZ') : '-'}</td>
+        <td>${t.close_time ? formatUzDate(t.close_time) : '-'}</td>
       </tr>`;
     }).join('');
 
