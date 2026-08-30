@@ -290,6 +290,17 @@
     margin: 0 auto;
     padding: 56px 40px 80px;
   }
+  @media (max-width: 640px){
+    main.dash-main{ padding: 24px 14px 60px; }
+    header.dash-nav{ padding: 16px 16px; }
+    .status-card, .journal-card, .trades-card, .add-trade-card,
+    .calc-card, .calendar-card, .profile-card, .equity-card, .winloss-card{
+      padding: 18px 16px;
+    }
+  }
+  @media (max-width: 400px){
+    main.dash-main{ padding: 20px 10px 60px; }
+  }
   .status-card{
     background: var(--surface);
     border: 1px solid var(--border);
