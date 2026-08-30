@@ -544,6 +544,17 @@
     cursor:pointer;
   }
   .delete-trade-btn:hover{ color: var(--red); border-color: var(--red); }
+  .detail-trade-btn{
+    background:none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    cursor:pointer;
+  }
+  .detail-trade-btn:hover{ color: var(--gold-bright); border-color: var(--gold-dim); }
 
   /* ============ HISOB (SHOT) TANLASH ============ */
   .accounts-bar{
@@ -1139,7 +1150,7 @@
     color: var(--muted);
     margin-bottom: 6px;
   }
-  .form-field input, .form-field select{
+  .form-field input, .form-field select, .form-field textarea{
     width:100%;
     box-sizing: border-box;
     background: var(--surface-2);
@@ -1150,7 +1161,8 @@
     padding: 10px 12px;
     border-radius: 8px;
   }
-  .form-field input:focus, .form-field select:focus{ outline: none; border-color: var(--gold-dim); }
+  .form-field textarea{ resize: vertical; font-family: var(--font-body); }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus{ outline: none; border-color: var(--gold-dim); }
   .add-trade-btn{
     background: var(--gold);
     color: #14120a;
@@ -1552,7 +1564,25 @@
                     <label>Yopilgan sana</label>
                     <input type="datetime-local" id="tfCloseTime">
                   </div>
+                  <div class="form-field">
+                    <label>Strategiya</label>
+                    <input type="text" id="tfStrategy" placeholder="Breakout" list="strategyList">
+                    <datalist id="strategyList">
+                      <option value="Breakout"><option value="Pullback"><option value="Trend"><option value="Reversal"><option value="Scalping"><option value="Range"><option value="News">
+                    </datalist>
+                  </div>
                 </div>
+
+                <div class="form-field" style="margin-bottom:14px;">
+                  <label>Izoh</label>
+                  <textarea id="tfNote" placeholder="Nima uchun kirdingiz, nima o'rgandingiz..." rows="3"></textarea>
+                </div>
+
+                <div class="form-field" style="margin-bottom:14px;">
+                  <label>Skrinshot (ixtiyoriy)</label>
+                  <input type="file" id="tfScreenshot" accept="image/*">
+                </div>
+
                 <button class="add-trade-btn" id="addTradeBtn">Qo'shish</button>
                 <div class="add-trade-status" id="addTradeStatus"></div>
               </div>
@@ -1560,7 +1590,10 @@
 
             <div id="secHistory" class="journal-panel">
               <div class="trades-card">
-                <h4>So'nggi trade'lar</h4>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+                  <h4 style="margin-bottom:0;">So'nggi trade'lar</h4>
+                  <button class="copy-btn" id="exportCsvBtn">📥 CSV yuklab olish</button>
+                </div>
                 <div class="trades-filter">
                   <input type="text" id="tradesFilterInput" placeholder="Symbol bo'yicha qidirish (masalan EURUSD)...">
                 </div>
@@ -1577,6 +1610,7 @@
                         <th>Davomiylik</th>
                         <th>P&L</th>
                         <th>Yopilgan vaqt</th>
+                        <th></th>
                         <th></th>
                       </tr>
                     </thead>
@@ -1832,6 +1866,33 @@
 
   <!-- Hisobot shabloni (yashirin, faqat rasm/PDF chiqarish uchun ishlatiladi) -->
   <div id="reportRoot"></div>
+
+  <!-- Trade tafsilotlari modal oynasi -->
+  <div class="day-modal-backdrop" id="tradeDetailBackdrop">
+    <div class="day-modal">
+      <div class="day-modal-head">
+        <h4 id="tdTitle">—</h4>
+        <button class="day-modal-close" id="tdClose">✕</button>
+      </div>
+      <div id="tdImageWrap" style="margin-bottom:16px; display:none;">
+        <img id="tdImage" src="" alt="Trade skrinshoti" style="width:100%; border-radius:10px; border:1px solid var(--border);">
+      </div>
+      <div class="form-field" style="margin-bottom:14px;">
+        <label>Strategiya</label>
+        <input type="text" id="tdStrategyInput" placeholder="Breakout" list="strategyList">
+      </div>
+      <div class="form-field" style="margin-bottom:14px;">
+        <label>Izoh</label>
+        <textarea id="tdNoteInput" placeholder="Nima uchun kirdingiz, nima o'rgandingiz..." rows="4"></textarea>
+      </div>
+      <div class="form-field" style="margin-bottom:14px;">
+        <label id="tdScreenshotLabel">Skrinshot</label>
+        <input type="file" id="tdScreenshotInput" accept="image/*">
+      </div>
+      <button class="add-trade-btn" id="tdSaveBtn">Saqlash</button>
+      <div class="add-trade-status" id="tdSaveStatus"></div>
+    </div>
+  </div>
 
   <!-- Kun tafsilotlari modal oynasi -->
   <div class="day-modal-backdrop" id="dayModalBackdrop">
@@ -2101,6 +2162,7 @@ let CURRENT_USER = null;
 let CURRENT_TRADES = [];
 let CURRENT_ACCOUNTS = [];
 let CURRENT_ACCOUNT_ID = null;
+let CURRENT_DETAIL_TRADE_ID = null;
 
 async function loadJournal(user){
   CURRENT_USER = user;
@@ -2322,11 +2384,87 @@ function renderTradesTable(trades, filterText){
       <td class="mono">${formatHold(t.open_time, t.close_time)}</td>
       <td class="mono ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</td>
       <td class="mono">${t.close_time ? new Date(t.close_time).toLocaleString('uz-UZ') : '-'}</td>
+      <td><button class="detail-trade-btn" data-detail-id="${t.id}" title="Izoh / skrinshot">${(t.note || t.strategy_tag || t.screenshot_url) ? '📝' : '➕'}</button></td>
       <td><button class="delete-trade-btn" data-trade-id="${t.id}" title="O'chirish">✕</button></td>
     `;
     tradesBody.appendChild(row);
   });
 }
+
+document.getElementById('tradesBody').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-detail-id]');
+  if(!btn) return;
+  const trade = CURRENT_TRADES.find(t => t.id === btn.getAttribute('data-detail-id'));
+  if(!trade) return;
+
+  CURRENT_DETAIL_TRADE_ID = trade.id;
+  document.getElementById('tdTitle').textContent = (trade.symbol || '') + ' — ' + (trade.trade_type === 'buy' ? 'Buy' : 'Sell');
+
+  const imgWrap = document.getElementById('tdImageWrap');
+  const img = document.getElementById('tdImage');
+  if(trade.screenshot_url){
+    img.src = trade.screenshot_url;
+    imgWrap.style.display = 'block';
+  } else {
+    imgWrap.style.display = 'none';
+  }
+
+  document.getElementById('tdStrategyInput').value = trade.strategy_tag || '';
+  document.getElementById('tdNoteInput').value = trade.note || '';
+  document.getElementById('tdScreenshotInput').value = '';
+  document.getElementById('tdScreenshotLabel').textContent = trade.screenshot_url ? 'Skrinshot (almashtirish)' : 'Skrinshot (qo\'shish)';
+  document.getElementById('tdSaveStatus').textContent = '';
+  document.getElementById('tradeDetailBackdrop').classList.add('open');
+});
+
+document.getElementById('tdSaveBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('tdSaveStatus');
+  const btn = document.getElementById('tdSaveBtn');
+  btn.disabled = true;
+  statusEl.textContent = 'Saqlanmoqda…';
+  statusEl.className = 'add-trade-status';
+
+  const strategyTag = document.getElementById('tdStrategyInput').value.trim();
+  const note = document.getElementById('tdNoteInput').value.trim();
+  const screenshotFile = document.getElementById('tdScreenshotInput').files[0];
+
+  const updates = { strategy_tag: strategyTag || null, note: note || null };
+
+  if(screenshotFile){
+    statusEl.textContent = 'Skrinshot yuklanmoqda…';
+    const ext = screenshotFile.name.split('.').pop();
+    const path = `${CURRENT_USER.id}/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await sb.storage.from('trade-screenshots').upload(path, screenshotFile);
+    if(uploadErr){
+      statusEl.textContent = 'Skrinshot xatosi: ' + uploadErr.message;
+      statusEl.className = 'add-trade-status error';
+      btn.disabled = false;
+      return;
+    }
+    const { data: pub } = sb.storage.from('trade-screenshots').getPublicUrl(path);
+    updates.screenshot_url = pub.publicUrl;
+  }
+
+  const { error } = await sb.from('trades').update(updates).eq('id', CURRENT_DETAIL_TRADE_ID);
+  btn.disabled = false;
+
+  if(error){
+    statusEl.textContent = 'Xatolik: ' + error.message;
+    statusEl.className = 'add-trade-status error';
+    return;
+  }
+
+  statusEl.textContent = 'Saqlandi.';
+  statusEl.className = 'add-trade-status ok';
+  loadTradesForAccount();
+});
+
+document.getElementById('tdClose').addEventListener('click', () => {
+  document.getElementById('tradeDetailBackdrop').classList.remove('open');
+});
+document.getElementById('tradeDetailBackdrop').addEventListener('click', (e) => {
+  if(e.target.id === 'tradeDetailBackdrop') document.getElementById('tradeDetailBackdrop').classList.remove('open');
+});
 
 function renderEquityCurve(trades, startingBalance){
   const canvas = document.getElementById('equityChart');
@@ -2631,6 +2769,9 @@ document.getElementById('addTradeBtn').addEventListener('click', async () => {
   const profit = document.getElementById('tfProfit').value;
   const openTime = document.getElementById('tfOpenTime').value;
   const closeTime = document.getElementById('tfCloseTime').value;
+  const strategyTag = document.getElementById('tfStrategy').value.trim();
+  const note = document.getElementById('tfNote').value.trim();
+  const screenshotFile = document.getElementById('tfScreenshot').files[0];
 
   if(!symbol || !profit){
     statusEl.textContent = 'Symbol va P&L to\'ldirilishi shart.';
@@ -2644,6 +2785,24 @@ document.getElementById('addTradeBtn').addEventListener('click', async () => {
 
   const { data: { user } } = await sb.auth.getUser();
 
+  let screenshotUrl = null;
+  if(screenshotFile){
+    statusEl.textContent = 'Skrinshot yuklanmoqda…';
+    const ext = screenshotFile.name.split('.').pop();
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await sb.storage.from('trade-screenshots').upload(path, screenshotFile);
+    if(uploadErr){
+      statusEl.textContent = 'Skrinshot xatosi: ' + uploadErr.message;
+      statusEl.className = 'add-trade-status error';
+      btn.disabled = false;
+      return;
+    }
+    const { data: pub } = sb.storage.from('trade-screenshots').getPublicUrl(path);
+    screenshotUrl = pub.publicUrl;
+  }
+
+  statusEl.textContent = 'Saqlanmoqda…';
+
   const { error } = await sb.from('trades').insert({
     user_id: user.id,
     account_id: CURRENT_ACCOUNT_ID,
@@ -2655,7 +2814,10 @@ document.getElementById('addTradeBtn').addEventListener('click', async () => {
     close_price: closePrice ? Number(closePrice) : null,
     profit: Number(profit),
     open_time: openTime ? new Date(openTime).toISOString() : null,
-    close_time: closeTime ? new Date(closeTime).toISOString() : new Date().toISOString()
+    close_time: closeTime ? new Date(closeTime).toISOString() : new Date().toISOString(),
+    strategy_tag: strategyTag || null,
+    note: note || null,
+    screenshot_url: screenshotUrl
   });
 
   btn.disabled = false;
@@ -2670,9 +2832,10 @@ document.getElementById('addTradeBtn').addEventListener('click', async () => {
   statusEl.className = 'add-trade-status ok';
 
   // Formani tozalash
-  ['tfSymbol','tfLot','tfOpenPrice','tfClosePrice','tfProfit','tfOpenTime','tfCloseTime'].forEach(id => {
+  ['tfSymbol','tfLot','tfOpenPrice','tfClosePrice','tfProfit','tfOpenTime','tfCloseTime','tfStrategy','tfNote'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  document.getElementById('tfScreenshot').value = '';
 
   loadTradesForAccount();
 });
@@ -3370,6 +3533,56 @@ document.querySelectorAll('#secLotCalc input').forEach(input => {
   input.addEventListener('input', runLotCalc);
 });
 runLotCalc();
+
+// ============ CSV EKSPORT ============
+document.getElementById('exportCsvBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('exportCsvBtn');
+  const original = btn.textContent;
+  btn.textContent = 'Tayyorlanmoqda…';
+
+  const { data: allTrades } = await sb
+    .from('trades')
+    .select('*')
+    .eq('account_id', CURRENT_ACCOUNT_ID)
+    .order('close_time', { ascending: false });
+
+  btn.textContent = original;
+
+  if(!allTrades || !allTrades.length){
+    alert('Eksport uchun trade yo\'q.');
+    return;
+  }
+
+  const headers = ['Symbol','Turi','Lot','Ochilish narxi','Yopilish narxi','P&L','Strategiya','Izoh','Ochilgan vaqt','Yopilgan vaqt'];
+  const escapeCsv = (val) => {
+    const s = (val === null || val === undefined) ? '' : String(val);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+
+  const rows = allTrades.map(t => [
+    t.symbol || '',
+    t.trade_type === 'buy' ? 'Buy' : 'Sell',
+    t.lot_size ?? '',
+    t.open_price ?? '',
+    t.close_price ?? '',
+    t.profit ?? '',
+    t.strategy_tag || '',
+    t.note || '',
+    t.open_time ? new Date(t.open_time).toLocaleString('uz-UZ') : '',
+    t.close_time ? new Date(t.close_time).toLocaleString('uz-UZ') : ''
+  ].map(escapeCsv).join(','));
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tradelog-pro-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 </script>
 </body>
 </html>
